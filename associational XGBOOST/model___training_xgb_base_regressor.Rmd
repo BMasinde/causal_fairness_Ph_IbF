@@ -207,7 +207,7 @@ print(rmse_by_bin)
 ```
 
 # Output
-```{r}
+```{r, eval=FALSE}
 saveRDS(damage_fit_reg_base, here("associational XGBOOST", "damage_fit_reg_base.rds"))
 ```
 

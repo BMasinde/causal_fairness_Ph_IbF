@@ -399,7 +399,7 @@ for (grp in levels(base_test$island_groups)) {
 ```
 
 # Outputs
-```{r}
+```{r, eval=FALSE}
 saveRDS(damage_fit_class_full, here("associational XGBOOST", "ass_XGBOOST_class.rds"))
 ```
 

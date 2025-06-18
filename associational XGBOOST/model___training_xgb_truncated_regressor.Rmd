@@ -187,7 +187,7 @@ for (i in seq_along(unique_bins)) {
 print(rmse_by_bin)
 ```
 
-```{r}
+```{r, eval=FALSE }
 saveRDS(here("associational XGBOOST", "trunc_damage_fit_reg.rds"))
 ```
 
