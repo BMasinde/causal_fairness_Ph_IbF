@@ -8,3 +8,4 @@ data_processing/compute___base_data_regions.nb.html
 data_processing/compute___modeling_data.nb.html
 associational XGBOOST/model___training_xgb_base_regressor.nb.html
 associational XGBOOST/model___training_xgb_classifier.nb.html
+associational XGBOOST/model___training_xgb_truncated_regressor.nb.html
