@@ -1,0 +1,104 @@
+---
+title: "Recipe: Splitting Modeling Data to Train, Validation, and Test Sets"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+library(dplyr)
+library(here)
+```
+
+# Input
+```{r}
+# recipe input
+modeling_data <- read.csv(here("data", "modeling_data.csv"))
+```
+
+# Base data splitting
+```{r}
+# splits for base_ datasets
+
+# number of rows in modeling_data
+n <- nrow(modeling_data)
+
+# Seeding for reproducibility
+set.seed(12345)
+
+# Generate random indices for 60% training set
+base_train_id <- sample(1:n, floor(n * 0.6), replace = FALSE)
+
+# Remaining indices after training selection
+base_remaining_id <- setdiff(1:n, base_train_id)
+
+# Split remaining 40% into 20% validation and 20% test
+base_val_id <- sample(base_remaining_id, floor(n * 0.2))
+
+base_test_id <- setdiff(base_remaining_id, base_val_id)  # The rest goes to test
+
+
+# Compute recipe outputs for base_ datasets
+base_train <- modeling_data[base_train_id, ] 
+
+base_test <- modeling_data[base_test_id, ] 
+
+base_validation <- modeling_data[base_val_id, ] 
+```
+
+
+
+# Truncated data splitting
+```{r}
+# splits for truncated_ datasets
+
+# Filtering modeling data by column damage_perc >= 10
+truncated_data <- modeling_data %>%
+  filter(damage_perc >= 10.0)
+
+# Reset row ID's
+rownames(truncated_data) <- 1:nrow(truncated_data)
+
+# number of observations with damage > 10
+n_trunc <- nrow(truncated_data)
+
+# Sample 60% for training
+trunc_train_id <- sample(1:n_trunc, floor(n_trunc * 0.6), replace = FALSE)
+
+# Get remaining 40% indices
+trunc_remaining_id <- setdiff(1:n_trunc, trunc_train_id)
+
+# Calculate correct split for validation and test (each should be 50% of the remaining)
+n_remaining <- length(trunc_remaining_id)
+val_size <- floor(n_remaining * 0.5)  # 50% of remaining
+
+# Sample validation set from remaining
+trunc_val_id <- sample(trunc_remaining_id, val_size, replace = FALSE)
+
+## The rest (remaining 20%) goes to test
+trunc_test_id <- setdiff(trunc_remaining_id, trunc_val_id)
+
+
+# Compute recipe outputs for truncated_ datasets
+truncated_train <- truncated_data[trunc_train_id, ] 
+
+truncated_validation <- truncated_data[trunc_val_id, ] 
+
+truncated_test <- truncated_data[trunc_test_id, ] 
+```
+
+# Output
+```{r, eval=FALSE}
+# DO NOT RUN UNLESS DATA SPLITS ARE UNAVAIALBLE
+write.csv(base_train, here("data", "base_train.csv"))
+
+write.csv(base_test, here("data", "base_test.csv"))
+          
+write.csv(base_validation, here("data", "base_validation.csv"))
+
+write.csv(truncated_train, here("data", "truncated_train.csv"))
+
+dkuWriteDataset(truncated_validation, here("data", "truncated_validation.csv")
+
+dkuWriteDataset(truncated_test, here("data", "truncated_test.csv"))
+```
+
