@@ -19,9 +19,9 @@ library(here)
 # Inputs
 ```{r}
 #  Recipe inputs
-base_train <- write.csv(here("data", "base_train.csv")
-base_validation <- write.csv(here("data", "base_validation.csv")
-base_test <- write.csv(here("data", "base_test.csv")
+base_train <- write.csv(here("data", "base_train.csv"))
+base_validation <- write.csv(here("data", "base_validation.csv"))
+base_test <- write.csv(here("data", "base_test.csv"))
 ```
 
 ```{r}
@@ -208,6 +208,6 @@ print(rmse_by_bin)
 
 # Output
 ```{r}
-saveRDS(damage_fit_reg_base, here("associational XGBOOST", ""damage_fit_reg_base.rds"")))
+saveRDS(damage_fit_reg_base, here("associational XGBOOST", "damage_fit_reg_base.rds"))
 ```
 
