@@ -19,9 +19,9 @@ library(here)
 # Inputs
 ```{r}
 #  Recipe inputs
-base_train <- write.csv(here("data", "base_train.csv"))
-base_validation <- write.csv(here("data", "base_validation.csv"))
-base_test <- write.csv(here("data", "base_test.csv"))
+base_train <- read.csv(here("data", "base_train.csv"))
+base_validation <- read.csv(here("data", "base_validation.csv"))
+base_test <- read.csv(here("data", "base_test.csv"))
 ```
 
 ```{r}
