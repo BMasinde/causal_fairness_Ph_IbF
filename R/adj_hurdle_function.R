@@ -10,7 +10,7 @@
 #'
 #'
 
-adjsutedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) {
+adjustedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
     wind_max = scm_models_base[["base_wind_model"]],
@@ -32,8 +32,11 @@ adjsutedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) 
                                                          newdata = df), .names = "{.col}_pred"))
   
   # predict for interaction terms
+  # Define wind and rain interaction variables
+  wind_fractions <- c("blue_ss_frac", "yellow_ss_frac", "orange_ss_frac", "red_ss_frac")
+  rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_frac")
+  
   for (col in wind_fractions) {
-    print(col)
     new_col_name <- paste0("wind_", col)
     df1[[new_col_name]] <- df1[[col]] * df1 [["wind_max_pred"]]
   }
