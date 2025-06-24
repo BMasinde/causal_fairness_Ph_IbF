@@ -114,7 +114,7 @@ source(here("R", "adj_hurdle_function.R"))
 # setting threshold for classification step
 threshold = 0.35
 
-preds <- adjustedDamagePred(df = df_test, scm_models_base = base_models_list,
+preds <- adjHurdleFun(df = df_test, scm_models_base = base_models_list,
   scm_models_high = trunc_models_list, threshold = threshold
 
 )
