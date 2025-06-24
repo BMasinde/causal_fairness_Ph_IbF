@@ -9,3 +9,7 @@ data_processing/compute___modeling_data.nb.html
 associational XGBOOST/model___training_xgb_base_regressor.nb.html
 associational XGBOOST/model___training_xgb_classifier.nb.html
 associational XGBOOST/model___training_xgb_truncated_regressor.nb.html
+adjusted SCM/adj_scm_testing_xgb_classifier.nb.html
+adjusted SCM/adj_scm_training_base_reg.nb.html
+adjusted SCM/adj_scm_training_trunc_reg.nb.html
+adjusted SCM/adj_scm_training_xgb_classifier.nb.html
