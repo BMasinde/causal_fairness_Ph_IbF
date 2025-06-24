@@ -1,0 +1,125 @@
+---
+title: "Sanity Check Adjsuted SCM"
+output: html_notebook
+author: Brain K. Masinde
+---
+
+```{r}
+# clear environment 
+rm(list = ls())
+```
+
+
+```{r}
+library(rpart)
+library(dplyr)
+library(caret)
+library(data.table)
+library(mlflow)
+library(reticulate)
+library(Metrics)
+library(here)
+```
+
+# Inputs
+
+## Data and cleaning (inc data cleaning functions)
+```{r}
+base_data_regions <- read.csv(here("data", "base_data_regions.csv"))
+
+nrow(base_data_regions)
+```
+
+
+```{r}
+# renaming columns
+source(here("R", "col_rename.R"))
+base_data_regions  <- col_rename(base_data_regions)
+```
+
+```{r}
+source(here("R", "filter_by_tc.R"))
+typhoon_melor_2015 <- filter_by_tc(df = base_data_regions, tc = "melor2015")
+```
+
+
+## Models and Functions
+```{r}
+# Define the list of model names for the base model
+base_model_names <- c("clas_full",
+                      "reg",
+                 "wind",
+                 "rain",
+                 "roof_strong_wall_strong",
+                 "roof_strong_wall_light",
+                 "roof_strong_wall_salv",
+                 "roof_light_wall_strong",
+                 "roof_light_wall_light",
+                 "roof_light_wall_salv",
+                 "roof_salv_wall_strong",
+                 "roof_salv_wall_light",
+                 "roof_salv_wall_salv"
+                )
+
+# Create a named list to store the models
+base_models_list <- list()
+
+# Loop over each model name to construct the file path and read the RDS file
+path_base <- here("adjusted SCM/base models")
+for (model_name in base_model_names) {
+  # Construct the file path for the model
+  file_path <- file.path(path_base, paste0("base_", model_name, "_model.rds"))
+
+  # Read the model and store it in the list with the model name as the key
+  base_models_list[[paste0("base_", model_name, "_model")]] <- readRDS(file_path)
+}
+```
+
+```{r}
+trunc_model_names <- c("reg",
+                 "wind",
+                 "rain",
+                 "roof_strong_wall_strong",
+                 "roof_strong_wall_light",
+                 "roof_strong_wall_salv",
+                 "roof_light_wall_strong",
+                 "roof_light_wall_light",
+                 "roof_light_wall_salv",
+                 "roof_salv_wall_strong",
+                 "roof_salv_wall_light",
+                 "roof_salv_wall_salv"
+                )
+
+# Create a named list to store the models
+trunc_models_list <- list()
+
+# Loop over each model name to construct the file path and read the RDS file
+path_trunc <- here("adjusted SCM/trunc models")
+for (model_name in trunc_model_names) {
+  # Construct the file path for the model
+  file_path <- file.path(path_trunc, paste0("trunc_", model_name, "_model.rds"))
+
+  # Read the model and store it in the list with the model name as the key
+  trunc_models_list[[paste0("trunc_", model_name, "_model")]] <- readRDS(file_path)
+}
+```
+
+# Prediction
+```{r}
+source(here("R", "adj_hurdle_function.R"))
+
+# setting threshold for classification step
+threshold = 0.35
+
+melor_preds <- adjHurdleFun(df = typhoon_melor_2015, scm_models_base = base_models_list,
+  scm_models_high = trunc_models_list, threshold = threshold
+)
+
+typhoon_melor_2015$forecast <- melor_preds
+```
+
+```{r}
+# 
+write.csv(melor_preds, file = here("adjusted SCM/outputs", "melor_2015_preds.csv"))
+```
+
