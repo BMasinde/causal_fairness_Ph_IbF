@@ -10,7 +10,7 @@
 #'
 #'
 
-adjustedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) {
+adjHurdleFun <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
     wind_max = scm_models_base[["base_wind_model"]],
@@ -49,9 +49,9 @@ adjustedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) 
   
   # WHY DO WE NEED THE OUTCOME VARIABLE HERE FACTOR COLUMNS
   # factors cleaning for classification task
-  df$damage_binary_2 <- factor(df$damage_binary,
-                                       levels = c("0", "1"),  # Your current levels
-                                       labels = c("Damage_below_10", "Damage_above_10"))  # New valid labels
+  # df$damage_binary_2 <- factor(df$damage_binary,
+  #                                      levels = c("0", "1"),  # Your current levels
+  #                                      labels = c("Damage_below_10", "Damage_above_10"))  # New valid labels
   
   ## Step 1: Predict the class label (whether the damage will exceed the threshold)
   ## class_model should return predicted classes and not probs.
@@ -92,7 +92,6 @@ adjustedDamagePred <- function(df, scm_models_base, scm_models_high, threshold) 
                                                           newdata = df), .names = "{.col}_pred"))
   # compute interaction terms based on the predictions
   for (col in wind_fractions) {
-    print(col)
     new_col_name <- paste0("wind_", col)
     df2[[new_col_name]] <- df2[[col]] * df2[["wind_max_pred"]]
   }
