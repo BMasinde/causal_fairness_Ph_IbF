@@ -115,11 +115,13 @@ melor_preds <- adjHurdleFun(df = typhoon_melor_2015, scm_models_base = base_mode
   scm_models_high = trunc_models_list, threshold = threshold
 )
 
-typhoon_melor_2015$forecast <- melor_preds
+# add column of the predicted
+typhoon_melor_2015_forecast <- cbind(Mun_Code = typhoon_melor_2015[["Mun_Code"]], forecast = melor_preds)
+
 ```
 
 ```{r}
 # 
-write.csv(melor_preds, file = here("adjusted SCM/outputs", "melor_2015_preds.csv"))
+write.csv(typhoon_melor_2015_forecast, file = here("adjusted SCM/outputs", "melor_2015_preds.csv"))
 ```
 
