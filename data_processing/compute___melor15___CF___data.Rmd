@@ -32,6 +32,6 @@ head(melor_2015)
 ```
 
 ```{r}
-write.csv(melor_2015, here("data", "melor15_CF_data"))
+write.csv(melor_2015, here("data", "melor15_CF_data.csv"))
 ```
 
