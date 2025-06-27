@@ -10,7 +10,7 @@
 #'
 #'
 
-adjHurdleFun <- function(df, scm_models_base, scm_models_high, threshold) {
+adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
     wind_max = scm_models_base[["base_wind_model"]],
