@@ -1,0 +1,171 @@
+---
+title: "Clustering Municipalities (For Counterfactual Testing)"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+rm(list = ls())
+library(here)
+library(cluster)
+library(tibble)
+library(purrr)
+```
+
+
+```{r}
+# read melor 
+melor15_CF_data <- read.csv(here("data", "melor15_CF_data.csv"))
+```
+
+
+
+# Clustering municipalities across regions
+I want to find municipalities that are more or less similar to each other across
+the regions.
+
+```{r}
+mun_properties  <- melor15_CF_data %>%
+    distinct(Mun_Code,
+             blue_ss_frac,
+             blue_ls_frac,
+             red_ls_frac,
+             orange_ls_frac,
+             yellow_ss_frac,
+             red_ss_frac,
+             orange_ss_frac,
+             yellow_ls_frac,
+             roof_strong_wall_strong,
+             roof_strong_wall_light,
+             roof_strong_wall_salv,
+             roof_light_wall_strong,
+             roof_light_wall_light,
+             roof_light_wall_salv,
+             roof_salv_wall_strong,
+             roof_salv_wall_light,
+             roof_salv_wall_salv,
+             island_groups,
+             .keep_all = FALSE)
+
+# variables I'm interested in for matching:
+match_vars  <- c('roof_strong_wall_strong',
+                    'roof_strong_wall_light',
+                    'roof_strong_wall_salv',
+                    'roof_light_wall_strong',
+                    'roof_light_wall_light',
+                    'roof_light_wall_salv',
+                    'roof_salv_wall_strong',
+                    'roof_salv_wall_light',
+                    'roof_salv_wall_salv'
+                   )
+
+# Normalize the variables using z-score
+mun_scaled <- mun_properties %>%
+  mutate(across(c(blue_ss_frac:roof_salv_wall_salv), scale))
+
+
+# Split dataset by group
+group1 <- mun_scaled %>% filter(island_groups == "Luzon")
+group2 <- mun_scaled %>% filter(island_groups == "Visayas")
+group3 <- mun_scaled %>% filter(island_groups == "Mindanao")
+
+# Ensure only numeric columns are used for matching
+group1_data <- group1 %>% select(-Mun_Code, -island_groups)
+group2_data <- group2 %>% select(-Mun_Code, -island_groups)
+group3_data <- group3 %>% select(-Mun_Code, -island_groups)
+
+
+all_data <- bind_rows(
+  group1 %>% mutate(region = "Luzon"),
+  group2 %>% mutate(region = "Visayas"),
+  group3 %>% mutate(region = "Mindanao")
+)
+
+# Remove non-numeric columns except for Mun_Code and region
+all_numeric <- all_data %>% select(-Mun_Code, -island_groups, -region)
+
+# Perform clustering
+set.seed(123)  # For reproducibility
+k <- 5  # Number of clusters (adjust as needed)
+clusters <- kmeans(all_numeric, centers = k, nstart = 25)
+
+# Add cluster assignments back to the data
+all_data$Cluster <- clusters$cluster
+
+# Create a tibble summarizing cluster sizes and municipality codes
+cluster_summary <- all_data %>%
+  group_by(Cluster) %>%
+  summarise(
+    Luzon = list(Mun_Code[region == "Luzon"]),
+    Visayas = list(Mun_Code[region == "Visayas"]),
+    Mindanao = list(Mun_Code[region == "Mindanao"])
+  )
+
+# Convert tibble into a nested list containing municipality codes
+nested_list <- cluster_summary %>%
+  mutate(Cluster = as.character(Cluster)) %>%  # Convert Cluster to character for list keys
+  split(.$Cluster) %>%
+  lapply(function(row) {
+    list(
+      Luzon = row$Luzon[[1]],
+      Visayas = row$Visayas[[1]],
+      Mindanao = row$Mindanao[[1]]
+    )
+  })
+
+# Print outputs
+print(cluster_summary)  # Summarized tibble with Mun_Code
+print(nested_list)  # Nested list with Mun
+```
+
+```{r}
+# some 2nd level lists have no entries
+# cleaning up
+clean_list <- function(lst) {
+  # Recursively clean second-level entries
+  lst <- lapply(lst, function(sublist) {
+    if (is.list(sublist)) {
+      sublist <- clean_list(sublist)  # Recursively clean sublists
+      if (length(sublist) == 0) return(NULL)  # Remove empty sublists
+    } else if (length(sublist) == 0) {
+      return(NULL)  # Remove empty atomic vectors
+    }
+    return(sublist)
+  })
+
+  # Remove NULL entries from first-level list
+  lst <- lst[!sapply(lst, is.null)]
+
+  # Remove first-level entries that have 0 or only 1 non-empty sublist
+  lst <- lst[sapply(lst, function(sublist) length(sublist) > 1)]
+
+  # If the entire list is empty, return NULL
+  if (length(lst) == 0) return(NULL)
+
+  return(lst)
+}
+
+cleaned_list <- clean_list(nested_list)
+
+print(cleaned_list)
+```
+
+
+```{r}
+# Assuming your nested list is called `cleaned_list`
+summary_tbl <- tibble(
+  Cluster = seq_along(cleaned_list),
+  Luzon = map(cleaned_list, ~ .x$Luzon),
+  Visayas = map(cleaned_list, ~ .x$Visayas),
+  Mindanao = map(cleaned_list, ~ .x$Mindanao)
+)
+
+summary_tbl
+```
+
+# Output
+```{r}
+# save the clusters
+save(cleaned_list, file = here("data", "clusters.RData"))
+```
+
