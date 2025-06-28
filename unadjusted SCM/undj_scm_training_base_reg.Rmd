@@ -1,0 +1,279 @@
+---
+title: "Unadjusted SCM Base Regression Training"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+# clearing workspace
+rm(list = ls())
+
+library(rpart)
+library(dplyr)
+library(caret)
+library(data.table)
+library(mlflow)
+library(reticulate)
+library(Metrics)
+library(purrr)
+library(themis)
+library(doMC)
+library(here)
+```
+
+
+# Inputs
+```{r}
+base_train <- read.csv(here("data", "base_train.csv"))
+base_validation <- read.csv(here("data", "base_validation.csv"))
+```
+
+
+```{r}
+# Combining train and validation datasets to one
+# Because we are going to use CV to train the models later
+# naming it df_base_train2 to remain consistent with df naming
+df_base_train2  <- rbind(base_train, base_validation)
+
+cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
+```
+
+```{r}
+# We already trained for the nodes rain and wind_speed
+# Define the list of model names for the base model
+model_names <- c("wind",
+                 "rain"
+                )
+
+# Create a named list to store the models
+base_models_list <- list()
+
+path <- here("unadjusted SCM/base models")
+for (model_name in model_names) {
+  # Construct the file path for the model
+  file_path <- file.path(path, paste0("base_", model_name, "_model.rds"))
+
+  # Read the model and store it in the list with the model name as the key
+  base_models_list[[paste0("base_", model_name, "_model")]] <- readRDS(file_path)
+}
+```
+
+
+```{r}
+model_list <- list(
+  wind_max = base_models_list$base_wind_model,
+  rain_total = base_models_list$base_rain_model
+)
+
+# Apply predictions efficiently
+df_base_train2 <- df_base_train2 %>%
+  mutate(across(names(model_list), ~ predict(model_list[[cur_column()]], newdata = df_base_train2), .names = "{.col}_pred"))
+```
+
+
+## Interaction terms (moderators)
+```{r}
+# Define wind and rain interaction variables
+wind_fractions <- c("blue_ss_frac", "yellow_ss_frac", "orange_ss_frac", "red_ss_frac")
+rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_frac")
+
+# Compute wind interaction terms dynamically
+# Compute wind interaction terms dynamically
+for (col in wind_fractions) {
+  print(col)
+  new_col_name <- paste0("wind_", col)
+  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["wind_max_pred"]]
+}
+
+# Multiply rain fractions by rain_total_pred
+for (col in rain_fractions) {
+  new_col_name <- paste0("rain_", col)
+  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["rain_total_pred"]]
+}
+```
+
+```{r}
+# setting seed for reproducibility
+set.seed(1234)
+
+# Define tuning grid
+tune_grid <- expand.grid(
+  nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
+  max_depth = c(2, 3, 4, 6),
+  eta = c(0.09, 0.1, 0.11, 0.12),
+  gamma = c(0, 1, 2, 3, 4),
+  colsample_bytree = c(0.9, 1.0, 1.1),
+  min_child_weight = c(2, 3, 4),
+  subsample = c(0.5, 0.6, 0.7, 0.8)
+)
+
+
+# Set up train control with 10-fold cross-validation
+train_control <- trainControl(
+  method = "cv",
+  number = 7,
+  summaryFunction = defaultSummary,
+  search = "random" # random selection of the expanded grid
+)
+
+# Detect and register the number of available cores (use all but one)
+num_cores <- parallel::detectCores() - 2
+registerDoMC(cores = num_cores)  # Enable parallel processing
+
+# Measure the time for a code block to run
+system.time({
+# Train the model using grid search with 7-fold CV
+base_xgb_reg_model <- train(
+  damage_perc ~ track_min_dist + # Confounder adjustmentwind_max_pred +
+    rain_total_pred +
+    roof_strong_wall_strong +
+    roof_strong_wall_light +
+    roof_strong_wall_salv +
+    roof_light_wall_strong +
+    roof_light_wall_light +
+    roof_light_wall_salv +
+    roof_salv_wall_strong +
+    roof_salv_wall_light +
+    roof_salv_wall_salv +
+    wind_blue_ss_frac +
+    wind_yellow_ss_frac +
+    wind_orange_ss_frac +
+    wind_red_ss_frac +
+    rain_blue_ls_frac +
+    rain_yellow_ls_frac +
+    rain_orange_ls_frac +
+    rain_red_ls_frac,
+  data = df_base_train2,
+  method = "xgbTree",
+  trControl = train_control,
+  tuneGrid = tune_grid,
+  metric = "RMSE"  # Optimize based on RMSE
+)
+Sys.sleep(2)  # This is just an example to simulate a delay
+})
+# Print best parameters
+print(base_xgb_reg_model$bestTune)
+```
+
+
+```{r}
+# set tracking URI
+mlflow_set_tracking_uri("http://127.0.0.1:5000")
+
+# Ensure any active run is ended
+suppressWarnings(try(mlflow_end_run(), silent = TRUE))
+
+# Logging metrics for model training and the parameters used
+mlflow_set_experiment(experiment_name = "U-SCM - XGBOOST base regression - CV (Training metircs)")
+
+# Ensure that MLflow has only one run. Start MLflow run once.
+run_name <- paste("XGBoost Run", Sys.time())  # Unique name using current time
+
+
+# Start MLflow run
+mlflow_start_run(nested = FALSE)
+
+# Ensure the run ends even if an error occurs
+#on.exit(mlflow_end_run(), add = TRUE)
+
+
+# -------- best parameters ---------------
+best_params <- base_xgb_reg_model$bestTune
+
+# Log each of the best parameters in MLflow
+for (param in names(best_params)) {
+  mlflow_log_param(param, best_params[[param]])
+}
+
+# ---------- train using best parameters
+damage_fit_reg_min <- train(damage_perc ~ track_min_dist +
+                              wind_max_pred +
+                              rain_total_pred +
+                              roof_strong_wall_strong +
+                              roof_strong_wall_light +
+                              roof_strong_wall_salv +
+                              roof_light_wall_strong +
+                              roof_light_wall_light +
+                              roof_light_wall_salv +
+                              roof_salv_wall_strong +
+                              roof_salv_wall_light +
+                              roof_salv_wall_salv +
+                              wind_blue_ss_frac +
+                              wind_yellow_ss_frac +
+                              wind_orange_ss_frac +
+                              wind_red_ss_frac +
+                              rain_blue_ls_frac +
+                              rain_yellow_ls_frac +
+                              rain_orange_ls_frac +
+                              rain_red_ls_frac ,
+                              method = "xgbTree",
+                              trControl = trainControl(method = "none"),
+                              tuneGrid = best_params, # Use the best parameters here
+                              metric = "RMSE",
+                              data = df_base_train2
+                         )
+
+# obtain predicted values
+train_predictions <- predict(damage_fit_reg_min, newdata = df_base_train2)
+
+
+# Define bin edges
+# Define bin edges
+bins <- c(0.00009, 1, 10, 50, 100)
+
+# Assign data to bins
+bin_labels <- cut(df_base_train2$damage_perc, breaks = bins, include.lowest = TRUE, right = TRUE)
+
+# Create a data frame with actual, predicted, and bin labels
+data <- data.frame(
+  actual = df_base_train2$damage_perc,
+  predicted = train_predictions,
+  bin = bin_labels
+)
+
+# Calculate RMSE per bin
+unique_bins <- levels(data$bin) # Get unique bin labels
+rmse_by_bin <- data.frame(bin = unique_bins, rmse = NA, count = NA) # Initialize results data frame
+
+for (i in seq_along(unique_bins)) {
+  bin_data <- data[data$bin == unique_bins[i], ] # Filter data for the current bin
+  rmse_by_bin$rmse[i] <- sqrt(mean((bin_data$actual - bin_data$predicted)^2, na.rm = TRUE)) # Calculate RMSE
+  rmse_by_bin$count[i] <- nrow(bin_data) # Count observations in the bin
+}
+
+# Display RMSE by bin
+print(rmse_by_bin)
+
+as.data.frame(rmse_by_bin)
+RMSE_1 <- rmse_by_bin[1, "rmse"]
+RMSE_10 <-  rmse_by_bin[2, "rmse"]
+RMSE_50 <- rmse_by_bin[3, "rmse"]
+RMSE_100 <- rmse_by_bin[4, "rmse"]
+
+# Log binned RMSE metrics
+mlflow_log_metric("RMSE_1", RMSE_1)
+mlflow_log_metric("RMSE_10", RMSE_10)
+mlflow_log_metric("RMSE_50", RMSE_50)
+mlflow_log_metric("RMSE_100", RMSE_100)
+
+# End MLflow run
+mlflow_end_run()
+```
+
+
+```{r}
+# Sanity Check
+# RMSE on the trainset (training + validation)
+# Compute RMSE
+
+damage_pred  <- predict(damage_fit_reg_min, newdata = df_base_train2)
+rmse_value <- rmse(df_base_train2$damage_perc, damage_pred)
+rmse_value
+```
+
+```{r}
+# save the trained rds file
+path <- here("unadjusted SCM/base models")
+saveRDS(base_xgb_reg_model, file = file.path(path, paste0("base_reg_model", ".rds")))
+```
+
