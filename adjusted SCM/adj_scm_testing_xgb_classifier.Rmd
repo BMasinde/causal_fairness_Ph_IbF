@@ -44,7 +44,7 @@ model_names <- c("clas_full",
 models_list <- list()
 
 # Loop over each model name to construct the file path and read the RDS file
-path <- here("adjusted SCM")
+path <- here("adjusted SCM/base models")
 for (model_name in model_names) {
   # Construct the file path for the model
   file_path <- file.path(path, paste0("base_", model_name, "_model.rds"))
