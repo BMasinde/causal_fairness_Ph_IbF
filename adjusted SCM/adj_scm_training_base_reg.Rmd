@@ -279,7 +279,8 @@ for (param in names(best_params)) {
 }
 
 # ---------- train using best parameters
-damage_fit_reg_min <- train(damage_perc ~ wind_max_pred +
+damage_fit_reg_min <- train(damage_perc ~  track_min_dist
+                              wind_max_pred +
                               rain_total_pred +
                               roof_strong_wall_strong_pred +
                               roof_strong_wall_light_pred +
@@ -298,8 +299,7 @@ damage_fit_reg_min <- train(damage_perc ~ wind_max_pred +
                               rain_yellow_ls_frac +
                               rain_orange_ls_frac +
                               rain_red_ls_frac +
-                              island_groups +  # Confounder adjustment
-                              track_min_dist_pred, # Confounder adjustment
+                              island_groups,  # Confounder adjustment
                               method = "xgbTree",
                               trControl = trainControl(method = "none"),
                               tuneGrid = best_params, # Use the best parameters here
