@@ -1,0 +1,358 @@
+---
+title: "Training Classification Model (Unadjusted SCM)"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+# cleaning workspace
+rm(list = ls())
+
+# libraries
+library(rpart)
+library(dplyr)
+library(caret)
+library(pROC) # For AUC calculation
+library(data.table)
+library(mlflow)
+library(reticulate)
+library(Matrix)
+library(purrr) # useful for code optimization
+library(themis)
+library(doMC)
+```
+
+
+# Data inputs
+```{r}
+# inputs
+base_train <- read.csv(here("data", "base_train.csv"))
+base_validation <- read.csv(here("data", "base_validation.csv"))
+
+# Combining train and validation datasets to one
+# Because we are going to use CV to train the models later
+# naming it df_base_train2 to remain consistent with df naming
+df_base_train2  <- rbind(base_train, base_validation)
+
+cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
+```
+
+
+```{r}
+# Training structural equation for wind speed
+# wind_speed = f(track_min_dist, eps)
+
+
+base_wind_model <- rpart(wind_max ~ track_min_dist,
+                       data = df_base_train2,
+                       method = "anova")
+```
+
+```{r}
+# Training structural equation for rain speed
+# rain_total = f(track_min_dist, eps)
+
+base_rain_model <- rpart(rain_total ~ track_min_dist,
+                       data = df_base_train2,
+                       method = "anova")
+```
+
+```{r}
+model_list <- list(
+  wind_max = base_wind_model,
+  rain_total = base_rain_model
+)
+
+# Apply predictions efficiently
+for (model_name in names(model_list)) {
+  pred_col_name <- paste0(model_name, "_pred")
+  df_base_train2[[pred_col_name]] <- predict(model_list[[model_name]], newdata = df_base_train2)
+}
+
+# Define wind and rain interaction variables
+wind_fractions <- c("blue_ss_frac", "yellow_ss_frac", "orange_ss_frac", "red_ss_frac")
+rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_frac")
+
+# Multiply wind fractions by wind_max_pred
+for (col in wind_fractions) {
+  print(col)
+  new_col_name <- paste0("wind_", col)
+  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["wind_max_pred"]]
+  # output for example wind_blue_ss_frac
+}
+
+# Multiply rain fractions by rain_total_pred
+for (col in rain_fractions) {
+  new_col_name <- paste0("rain_", col)
+  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["rain_total_pred"]]
+}
+```
+
+```{r}
+# Ensure target variable is a factor
+# Ensure the target variable is a factor with valid names
+
+#df_base_train2$damage_binary <- as.factor(df_base_train2$damage_binary)
+
+df_base_train2$damage_binary_2 <- factor(df_base_train2$damage_binary,
+                                       levels = c("0", "1"),  # Your current levels
+                                       labels = c("Damage_below_10", "Damage_above_10"))  # New valid labels
+```
+
+
+# Model training
+```{r}
+# setting seed for reproducibility
+set.seed(1234)
+
+tune_grid <- expand.grid(
+  nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
+  max_depth = c(2, 3, 4, 6),
+  eta = c(0.09, 0.1, 0.11, 0.12),
+  gamma = c(0, 1, 2, 3, 4),
+  colsample_bytree = c(0.9, 1.0, 1.1),
+  min_child_weight = c(2, 3, 4),
+  subsample = c(0.5, 0.6, 0.7, 0.8)
+)
+
+
+# Set up train control with 10-fold cross-validation
+train_control <- trainControl(
+  method = "cv",
+  number = 7,
+  classProbs = TRUE,  # Needed for AUC calculation
+  summaryFunction = twoClassSummary,
+  sampling = "smote", # caret automatically identifies minority class
+  search = "random" # random selection of the expanded grid
+)
+
+# Detect and register the number of available cores (use all but one)
+num_cores <- parallel::detectCores() - 2
+registerDoMC(cores = num_cores)  # Enable parallel processing
+
+
+# Measure the time for a code block to run
+system.time({
+    # Train the model using grid search with 10-fold CV
+
+    xgb_model <- train(
+      damage_binary_2 ~ track_min_dist +
+        wind_max_pred +
+        rain_total_pred +
+        roof_strong_wall_strong +
+        roof_strong_wall_light +
+        roof_strong_wall_salv +
+        roof_light_wall_strong +
+        roof_light_wall_light +
+        roof_light_wall_salv +
+        roof_salv_wall_strong +
+        roof_salv_wall_light +
+        roof_salv_wall_salv +
+        wind_blue_ss_frac +
+        wind_yellow_ss_frac +
+        wind_orange_ss_frac +
+        wind_red_ss_frac +
+        rain_blue_ls_frac +
+        rain_yellow_ls_frac +
+        rain_orange_ls_frac +
+        rain_red_ls_frac,
+        data = df_base_train2,
+        method = "xgbTree",
+        trControl = train_control,
+        tuneGrid = tune_grid,
+        metric = "ROC" # "xgbTree" does not support other metrics for classification tasks (e.g., Kappa or F1)
+    )
+    Sys.sleep(2)  # This is just an example to simulate a delay
+})
+
+# Print best parameters
+print(xgb_model$bestTune)
+```
+
+```{r}
+xgb_model$bestTune
+```
+
+```{r}
+# Training based on tuned parameters
+
+# Combine Training and Validation datasets for final training
+
+#final_training_df  <- rbind(df_base_train,
+#                           df_base_validation)
+
+
+# Extract the best parameters (remove AUC column)
+best_params_model <- xgb_model$bestTune
+
+damage_fit_class_full <- train(
+          damage_binary_2 ~  track_min_dist +
+            wind_max_pred +
+            rain_total_pred +
+            roof_strong_wall_strong +
+            roof_strong_wall_light +
+            roof_strong_wall_salv +
+            roof_light_wall_strong +
+            roof_light_wall_light +
+            roof_light_wall_salv +
+            roof_salv_wall_strong +
+            roof_salv_wall_light +
+            roof_salv_wall_salv +
+            wind_blue_ss_frac +
+            wind_yellow_ss_frac +
+            wind_orange_ss_frac +
+            wind_red_ss_frac +
+            rain_blue_ls_frac +
+            rain_yellow_ls_frac +
+            rain_orange_ls_frac +
+            rain_red_ls_frac,
+          data = df_base_train2, # USE TRAINING AND VALIDATION SETS COMBINED
+          method = "xgbTree", # XGBoost method
+          trControl = trainControl(method = "none"),  # No automatic validation
+          tuneGrid = best_params_model # USE BEST PARAMETER
+        )
+```
+
+```{r}
+# Sanity Check
+# testing on the training datasets (training + validation)
+
+## Outcome prediction on the final_training_df dataset
+## default function predict returns class probabilities (has two columns)
+y_pred <- predict(damage_fit_class_full,
+                  newdata = df_base_train2)
+```
+
+```{r}
+levels(y_pred)
+```
+
+```{r}
+# using table function
+conf_matrix <- confusionMatrix(y_pred,
+                     df_base_train2$damage_binary_2, # remember to use damage_binary_2
+                     positive = "Damage_above_10"
+                     )
+conf_matrix
+```
+
+```{r}
+accuracy <- conf_matrix$overall['Accuracy']
+
+cat("test-set accuracy of minimal SCM model:", accuracy, sep = " ")
+```
+
+```{r}
+# Logging the model and parameter using MLflow
+
+# set tracking URI
+mlflow_set_tracking_uri("http://127.0.0.1:5000")
+
+# Ensure any active run is ended
+suppressWarnings(try(mlflow_end_run(), silent = TRUE))
+
+# set experiment
+# Logging metrics for model training and the parameters used
+mlflow_set_experiment(experiment_name = "U-SCM - XGBOOST classification - CV (Training metircs)")
+
+# Ensure that MLflow has only one run. Start MLflow run once.
+run_name <- paste("XGBoost Run", Sys.time())  # Unique name using current time
+
+
+# Start MLflow run
+mlflow_start_run(nested = FALSE)
+
+# Ensure the run ends even if an error occurs
+#on.exit(mlflow_end_run(), add = TRUE)
+
+# Extract the best parameters (remove AUC column)
+best_params_model <- xgb_model$bestTune
+
+# Log each of the best parameters in MLflow
+for (param in names(best_params_model)) {
+  mlflow_log_param(param, best_params_model[[param]])
+}
+
+# Log the model type as a parameter
+mlflow_log_param("model_type", "R-undaj-scm-xgboost-classification")
+
+damage_fit_class_full <- train(
+          damage_binary_2 ~  track_min_dist +
+            wind_max_pred +
+            rain_total_pred +
+            roof_strong_wall_strong +
+            roof_strong_wall_light +
+            roof_strong_wall_salv +
+            roof_light_wall_strong +
+            roof_light_wall_light +
+            roof_light_wall_salv +
+            roof_salv_wall_strong +
+            roof_salv_wall_light +
+            roof_salv_wall_salv +
+            wind_blue_ss_frac +
+            wind_yellow_ss_frac +
+            wind_orange_ss_frac +
+            wind_red_ss_frac +
+            rain_blue_ls_frac +
+            rain_yellow_ls_frac +
+            rain_orange_ls_frac +
+            rain_red_ls_frac,
+          data = df_base_train2, # USE TRAINING AND VALIDATION SETS COMBINED
+          method = "xgbTree", # XGBoost method
+          trControl = trainControl(method = "none"),  # No automatic validation
+          tuneGrid = best_params_model # USE BEST PARAMETER
+        )
+
+
+# summarize results
+conf_matrix <- confusionMatrix(y_pred,
+                     df_base_train2$damage_binary_2,
+                     positive = "Damage_above_10"
+                     )
+
+# accuracy
+accuracy  <- conf_matrix$overall['Accuracy']
+
+# Positive class = 1, precision, recall, and F1
+# Extract precision, recall, and F1 score
+precision <- conf_matrix$byClass['Precision']
+recall <- conf_matrix$byClass['Recall']
+f1_score <- conf_matrix$byClass['F1']
+
+
+# Log parameters and metrics
+# mlflow_log_param("model_type", "scm-xgboost-classification")
+mlflow_log_metric("accuracy", accuracy)
+mlflow_log_metric("F1", f1_score)
+mlflow_log_metric("Precision", precision)
+mlflow_log_metric("Recall", recall)
+
+
+# Save model
+#saveRDS(model, file = file.path(path_2_folder, "spam_clas_model.rds"))
+
+# End MLflow run
+mlflow_end_run()
+```
+
+
+
+```{r}
+# Models in a list 
+models <- list(damage_fit_class_full,
+               base_wind_model,
+               base_rain_model
+              )
+model_names <- c("base_clas_full_model",
+                 "base_wind_model",
+                 "base_rain_model"
+                )
+
+# Saving trained XGBOOST model
+full_path <- here("unadjusted SCM/base models")
+
+mapply(function(model, name) {
+  saveRDS(model, file = paste0(full_path, "/", name, ".rds"))
+}, models, model_names)
+```
+
