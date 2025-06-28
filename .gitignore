@@ -19,3 +19,5 @@ data/phl_admbnda_adm3_psa_namria_20200529.shp
 data_processing/compute___melor15___CF___data.nb.html
 data_processing/compute___municipality_clusters.nb.html
 adjusted SCM/adj_scm_counterfactual.nb.html
+unadjusted SCM/uadj_scm_training_xgb_classifier.nb.html
+unadjusted SCM/unadj_scm_testing_xgb_classifier.nb.html
