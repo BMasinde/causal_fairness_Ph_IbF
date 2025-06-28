@@ -1,0 +1,177 @@
+---
+title: "Unadjusted Causal Model Testing"
+output: html_notebook
+author: Brain K. Masinde
+---
+
+```{r}
+rm(list = ls())
+library(rpart)
+library(dplyr)
+library(caret)
+library(data.table)
+library(mlflow)
+library(reticulate)
+library(Metrics)
+library(here)
+```
+
+
+```{r}
+# Final Testing data 
+# Reading base_test data
+base_test <- read.csv(here("data", "base_test.csv"))
+
+# Redaing trunc_test data
+truncated_test <- read.csv(here("data", "truncated_test.csv"))
+
+## because we already implemented the hurdle method
+df_test <- bind_rows(
+  base_test,
+  truncated_test
+)
+
+nrow(df_test)
+```
+
+# Trained models
+```{r}
+# base models
+model_names <- c("clas_full",
+                 "rain",
+                 "reg",
+                 "wind"
+                )
+
+# Create a named list to store the models
+base_models_list <- list()
+
+# Loop over each model name to construct the file path and read the RDS file
+path_base <- here("unadjusted SCM/base models")
+for (model_name in model_names) {
+  # Construct the file path for the model
+  file_path <- file.path(path_base, paste0("base_", model_name, "_model.rds"))
+
+  # Read the model and store it in the list with the model name as the key
+  base_models_list[[paste0("base_", model_name, "_model")]] <- readRDS(file_path)
+}
+
+```
+
+```{r}
+# reading truncated models
+trunc_model_names <- c("rain",
+                       "reg",
+                        "wind"
+                )
+
+# Create a named list to store the models
+trunc_models_list <- list()
+
+# Loop over each model name to construct the file path and read the RDS file
+path_trunc <- here("unadjusted SCM/trunc models")
+for (model_name in trunc_model_names) {
+  # Construct the file path for the model
+  file_path <- file.path(path_trunc, paste0("trunc_", model_name, "_model.rds"))
+
+  # Read the model and store it in the list with the model name as the key
+  trunc_models_list[[paste0("trunc_", model_name, "_model")]] <- readRDS(file_path)
+}
+```
+
+
+```{r}
+names(trunc_models_list)
+```
+
+```{r}
+names(base_models_list)
+```
+
+# Hurdle Testing
+```{r}
+# setting threshold for classification step
+threshold = 0.35
+
+source(here("R", "unadj_hurdle_function.R"))
+
+preds <- unadj_hurdle_function(df = df_test, scm_models_base = base_models_list,
+  scm_models_high = trunc_models_list, threshold = threshold
+)
+```
+
+
+
+```{r}
+# Define bin edges
+# Define bin edges
+bins <- c(0, 0.00009, 1, 10, 50, 100)
+
+# Assign data to bins
+bin_labels <- cut(df_test$damage_perc, breaks = bins, include.lowest = TRUE, right = TRUE)
+
+# Create a data frame with actual, predicted, and bin labels
+data <- data.frame(
+  actual = df_test$damage_perc,
+  predicted = preds,
+  bin = bin_labels
+)
+
+# Calculate RMSE per bin
+unique_bins <- levels(data$bin) # Get unique bin labels
+rmse_by_bin <- data.frame(bin = unique_bins, rmse = NA, count = NA) # Initialize results data frame
+
+for (i in seq_along(unique_bins)) {
+  bin_data <- data[data$bin == unique_bins[i], ] # Filter data for the current bin
+  rmse_by_bin$rmse[i] <- sqrt(mean((bin_data$actual - bin_data$predicted)^2, na.rm = TRUE)) # Calculate RMSE
+  rmse_by_bin$count[i] <- nrow(bin_data) # Count observations in the bin
+}
+
+# Calculate weighted average RMSE
+total_count <- sum(rmse_by_bin$count, na.rm = TRUE)
+w_avg  <- sum(rmse_by_bin$rmse * rmse_by_bin$count)/total_count
+
+# Display RMSE by bin
+print(rmse_by_bin)
+```
+
+```{r}
+w_avg
+
+```
+
+
+```{r}
+# Log metrics using MLFLOW
+# set tracking URI
+mlflow_set_tracking_uri("http://127.0.0.1:5000")
+
+# Ensure any active run is ended
+suppressWarnings(try(mlflow_end_run(), silent = TRUE))
+
+# set experiment
+# Logging metrics for model training and the parameters used
+mlflow_set_experiment(experiment_name = "R - U-SCM - Hurlde - CV (Test metircs)")
+
+# Ensure that MLflow has only one run. Start MLflow run once.
+run_name <- paste("Hurdle Run", Sys.time())  # Unique name using current time
+
+as.data.frame(rmse_by_bin)
+RMSE_09 <- rmse_by_bin[1, "rmse"]
+RMSE_1 <- rmse_by_bin[2, "rmse"]
+RMSE_10 <-  rmse_by_bin[3, "rmse"]
+RMSE_50 <- rmse_by_bin[4, "rmse"]
+RMSE_100 <- rmse_by_bin[5, "rmse"]
+
+# Log threshold & binned RMSE metrics
+mlflow_log_metric("thresh", threshold)
+mlflow_log_metric("RMSE_09", RMSE_09)
+mlflow_log_metric("RMSE_1", RMSE_1)
+mlflow_log_metric("RMSE_10", RMSE_10)
+mlflow_log_metric("RMSE_50", RMSE_50)
+mlflow_log_metric("RMSE_100", RMSE_100)
+mlflow_log_metric("w_avg", w_avg)
+# End MLflow run
+mlflow_end_run()
+```
+
