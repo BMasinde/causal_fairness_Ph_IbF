@@ -1,0 +1,122 @@
+---
+title: "Data Exploration: Spatial Opposing Gradients"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+library(here)
+library(dplyr)
+library(fmsb)
+```
+
+
+
+# Data input
+```{r}
+df <- read.csv(here("data", "base_data_regions.csv"))
+```
+
+
+# Trends for vulnerability
+Investigating spatial opposing gradients for vulnerability.
+```{r}
+# Generate df with mean building types in each region
+#  building typology numbers remain the same despite the typhoon
+#  so its ok to get unique observations along with Muc_code
+
+
+vuln_mean_df <- df %>%
+  distinct(Mun_Code, island_groups,
+           VUL_StrongRoof_StrongWall, VUL_StrongRoof_LightWall, VUL_StrongRoof_SalvageWall,
+           VUL_LightRoof_StrongWall, VUL_LightRoof_LightWall, VUL_LightRoof_SalvageWall,
+           VUL_SalvagedRoof_StrongWall, VUL_SalvagedRoof_LightWall, VUL_SalvagedRoof_SalvageWall) %>%
+  group_by(island_groups) %>%
+  summarise(across(c(
+    VUL_StrongRoof_StrongWall, VUL_StrongRoof_LightWall, VUL_StrongRoof_SalvageWall,
+    VUL_LightRoof_StrongWall, VUL_LightRoof_LightWall, VUL_LightRoof_SalvageWall,
+    VUL_SalvagedRoof_StrongWall, VUL_SalvagedRoof_LightWall, VUL_SalvagedRoof_SalvageWall),
+    mean, na.rm = TRUE)) %>%
+  rename(roof_strong_wall_strong = VUL_StrongRoof_StrongWall,
+      roof_strong_wall_light = VUL_StrongRoof_LightWall,
+      roof_strong_wall_salv = VUL_StrongRoof_SalvageWall,
+      roof_light_wall_strong = VUL_LightRoof_StrongWall,
+      roof_light_wall_light = VUL_LightRoof_LightWall,
+      roof_light_wall_salv = VUL_LightRoof_SalvageWall,
+      roof_salv_wall_strong = VUL_SalvagedRoof_StrongWall,
+      roof_salv_wall_light = VUL_SalvagedRoof_LightWall,
+      roof_salv_wall_salv = VUL_SalvagedRoof_SalvageWall,)
+
+  
+  
+```
+
+
+```{r}
+
+# Remove group column and keep only numeric values
+vuln_radar_data <- vuln_mean_df %>%
+  tibble::column_to_rownames("island_groups") %>%
+  as.data.frame()
+
+# Add custom max and min rows (100 and 0)
+vuln_radar_data <- rbind(
+  rep(100, ncol(vuln_radar_data)),  # max values
+  rep(0, ncol(vuln_radar_data)),    # min values
+  vuln_radar_data
+)
+
+# Set correct row names
+rownames(vuln_radar_data)[1:2] <- c("Max", "Min")
+```
+
+
+```{r}
+
+
+{
+  radarchart(vuln_radar_data,
+           axistype = 1,
+           pcol = c("red", "blue", "green"),  # Customize colors as needed
+           plwd = 2,
+           plty = 1,
+           cglcol = "grey", cglty = 1,
+           axislabcol = "black", caxislabels = seq(0, 100, 20),
+           vlcex = 0.8,
+           title = "Building typology means across island regions of Philippines")
+  
+  legend("topright",
+       legend = rownames(vuln_radar_data)[3:nrow(vuln_radar_data)],
+       col = c("red", "blue", "green"),
+       lty = 1, lwd = 2, cex = 0.8)
+}
+```
+
+```{r}
+# Save to file
+png(filename = here("plots", "mun_vulnerability_radar_chart.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Plot inside the PNG device
+radarchart(vuln_radar_data,
+           axistype = 1,
+           pcol = c("red", "blue", "green"),  # Customize colors as needed
+           plwd = 2,
+           plty = 1,
+           cglcol = "grey", cglty = 1,
+           axislabcol = "black", caxislabels = seq(0, 100, 20),
+           vlcex = 0.8,
+           title = "Building typology means across island regions of Philippines")
+
+legend("topright",
+       legend = rownames(vuln_radar_data)[3:nrow(vuln_radar_data)],
+       col = c("red", "blue", "green"),
+       lty = 1, lwd = 2, cex = 0.8)
+
+# Finish writing the file
+dev.off()
+```
+
+# Trends for hazard
+
+
+
