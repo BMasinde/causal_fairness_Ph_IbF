@@ -26,7 +26,15 @@ counterfactual_gen  <- function(df, tc, storm_surge, landslide){
            rain_blue_ls = rain_total * landslide,
            rain_yellow_ls = rain_total * landslide,
            rain_orange_ls = rain_total * landslide,
-           rain_red_ls = rain_total * landslide
+           rain_red_ls = rain_total * landslide,
+           blue_ss_frac = storm_surge,
+           yellow_ss_frac = storm_surge,
+           orange_ss_frac = storm_surge,
+           red_ss_frac = storm_surge,
+           blue_ls_frac = landslide,
+           yellow_ls_frac = landslide,
+           orange_ls_frac= landslide,
+           red_ls_frac = landslide
     ) %>%
     select(-typhoon)
   
@@ -58,9 +66,14 @@ counterfactual_gen  <- function(df, tc, storm_surge, landslide){
              rain_yellow_ls = rain_total * landslide,
              rain_orange_ls = rain_total * landslide,
              rain_red_ls = rain_total * landslide,
-             #damage_perc = 0, # set damage variable to zero or "Damage_below_10"
-             #damage_binary = 0,
-             #damage_binary_2 = "Damage_below_10"
+             blue_ss_frac = storm_surge,
+             yellow_ss_frac = storm_surge,
+             orange_ss_frac = storm_surge,
+             red_ss_frac = storm_surge,
+             blue_ls_frac = landslide,
+             yellow_ls_frac = landslide,
+             orange_ls_frac= landslide,
+             red_ls_frac = landslide
       ) %>%
       select(-typhoon)
     # debugging
