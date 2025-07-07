@@ -166,3 +166,14 @@ print(plots_list)
 print(median_list)
 ```
 
+# Output the counterfactual predictions
+Saving the counterfactual predictions for mapping differences  between this 
+adjusted causal model and the associational XGBOOST model in QGIS.
+```{r}
+CF_output <- melor_2015 %>%
+  select(Mun_Code, damage_preds) %>%
+  rename(adj_scm_CF_M15 = damage_preds)
+  
+write.csv2(CF_output, file = here("adjusted SCM/outputs", "scm_CF_M15.csv"))
+```
+
