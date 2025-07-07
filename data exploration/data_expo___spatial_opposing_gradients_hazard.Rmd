@@ -1,0 +1,109 @@
+---
+title: "Data Exploration: Spatial Opposing Gradients"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+library(here)
+library(dplyr)
+library(fmsb)
+```
+
+
+# Data input
+```{r}
+df <- read.csv(here("data", "base_data_regions.csv"))
+```
+
+
+# Investigating Spatial opposing graidents for hazards
+
+## Using Interquartile Range
+```{r}
+haz_extreme_counts <- df %>%
+  group_by(island_groups) %>%
+  summarise(
+    rain_total_extremes = sum(
+      HAZ_rainfall_Total < quantile(HAZ_rainfall_Total, 0.25, na.rm = TRUE) - 1.5 * IQR(HAZ_rainfall_Total, na.rm = TRUE) |
+      HAZ_rainfall_Total > quantile(HAZ_rainfall_Total, 0.75, na.rm = TRUE) + 1.5 * IQR(HAZ_rainfall_Total, na.rm = TRUE),
+      na.rm = TRUE),
+    wind_max_extremes = sum(
+      HAZ_v_max < quantile(HAZ_v_max, 0.25, na.rm = TRUE) - 1.5 * IQR(HAZ_v_max, na.rm = TRUE) |
+      HAZ_v_max > quantile(HAZ_v_max, 0.75, na.rm = TRUE) + 1.5 * IQR(HAZ_v_max, na.rm = TRUE),
+      na.rm = TRUE),
+    track_min_dist_extremes = sum(
+      HAZ_dis_track_min < quantile(HAZ_dis_track_min, 0.25, na.rm = TRUE) - 1.5 * IQR(HAZ_dis_track_min, na.rm = TRUE) |
+      HAZ_dis_track_min > quantile(HAZ_dis_track_min, 0.75, na.rm = TRUE) + 1.5 * IQR(HAZ_dis_track_min, na.rm = TRUE),
+      na.rm = TRUE)
+  )
+```
+
+
+```{r}
+# Set up max and min rows
+radar_data <- haz_extreme_counts[, -1]  # Remove the island_groups column for radar data
+
+# Add max and min rows
+radar_data <- rbind(
+  rep(max(radar_data), ncol(radar_data)), # get the maximum from the columns
+  rep(min(radar_data), ncol(radar_data)), # get the minimum from the columns
+  radar_data
+)
+
+# Add row names
+rownames(radar_data) <- c("Max", "Min", haz_extreme_counts$island_groups)
+```
+
+```{r}
+{
+  # Basic radar plot
+radarchart(radar_data,
+           axistype = 1,
+           pcol = rainbow(nrow(haz_extreme_counts)),  # unique color per island group
+           plwd = 2,
+           plty = 1,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "grey",
+           caxislabels = seq(0, max(radar_data), length.out = 5),
+           cglwd = 0.8,
+           vlcex = 0.8
+)
+
+# Optional: add legend
+legend(x = "topright", legend = haz_extreme_counts$island_groups,
+       col = rainbow(nrow(haz_extreme_counts)), lty = 1, lwd = 2, cex = 0.8)
+}
+```
+
+```{r}
+# Save to file
+png(filename = here("plots", "extreme_hazard_radar_chart.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Plot inside the PNG device
+
+ # Basic radar plot
+radarchart(radar_data,
+           axistype = 1,
+           pcol = rainbow(nrow(haz_extreme_counts)),  # unique color per island group
+           plwd = 2,
+           plty = 1,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "grey",
+           caxislabels = seq(0, max(radar_data), length.out = 5),
+           cglwd = 0.8,
+           vlcex = 0.8,
+           title = "Count of extreme TC hazard measurements"
+)
+
+# Optional: add legend
+legend(x = "topright", legend = haz_extreme_counts$island_groups,
+       col = rainbow(nrow(haz_extreme_counts)), lty = 1, lwd = 2, cex = 0.8)
+
+
+# Finish writing the file
+dev.off()
+```
+
