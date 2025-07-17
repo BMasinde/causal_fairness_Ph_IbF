@@ -412,7 +412,7 @@ model_names <- c("base_clas_full_model",
                  "base_roof_salv_wall_salv_model"
                 )
 
-full_path <- here("adjusted SCM")
+full_path <- here("adjusted SCM/base models")
 mapply(function(model, name) {
   saveRDS(model, file = file.path(full_path, paste0(name, ".rds")))
 }, models, model_names)

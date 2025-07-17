@@ -356,7 +356,7 @@ mlflow_end_run()
 
 ```{r}
 # save the trained rds file
-path <- here("adjusted SCM")
+path <- here("adjusted SCM/base models")
 saveRDS(damage_fit_reg_min, file = file.path(path, paste0("base_reg_model", ".rds")))
 ```
 
