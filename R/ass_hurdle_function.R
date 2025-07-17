@@ -20,6 +20,7 @@ ass_hurdle_function <- function(df, ass_clas_model, ass_base_model, ass_trunc_mo
   ## Step 1: Predict the class label (whether the damage will exceed the threshold)
   ## class_model should return predicted classes and not probs.
   ## type = "prob" for custom threshold specification
+  set.seed(42)
   prob_pred <- predict(ass_clas_model, df, type = "prob")[,2]  # Probability of class 1
   ## assigning final class based on threshold
   class_pred <- ifelse(prob_pred > threshold, 1, 0) # low threhold of 0.35 can be changed to 0.65/0.75

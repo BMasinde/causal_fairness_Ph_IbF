@@ -48,6 +48,7 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   ## class_model should return predicted classes and not probs.
   ## class_model expects variables "wind_max_pred" and "rain_total_pred" in dataframe df
   ## type = "prob" for custom threshold specification
+  set.seed(42)
   prob_pred <- predict(scm_models_base$base_clas_full_model, df1, type = "prob")[,2]  # Probability of class 1
   ## assigning final class based on threshold
   class_pred <- ifelse(prob_pred > threshold, 1, 0) # low threhold of 0.35 can be changed to 0.65/0.75
