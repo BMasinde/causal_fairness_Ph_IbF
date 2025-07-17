@@ -1,6 +1,10 @@
 ---
 title: "Counterfactual Testing Associational Model"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 ```{r}
@@ -118,7 +122,7 @@ print(median_list)
 Saving the counterfactual predictions for mapping differences  between this 
 associational model with in QGIS.
 
-```{r}
+```{r eval=FALSE}
 # prep
 
 CF_output <- melor_2015 %>%
