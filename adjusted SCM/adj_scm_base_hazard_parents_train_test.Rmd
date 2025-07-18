@@ -1,0 +1,187 @@
+---
+title: "Training and Testing Hazard Parent Nodes: Wind and Rain"
+output: html_notebook
+---
+
+```{r}
+# clear working environment
+rm(list = ls())
+
+# load libraries
+library(rpart)
+library(here)
+library(rpart.plot)
+library(caret)
+```
+
+# Reusable functions
+```{r}
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+```
+
+
+# Inputs
+```{r}
+# inputs
+base_train <- read.csv(here("data", "base_train.csv"))
+base_validation <- read.csv(here("data", "base_validation.csv") )
+base_test <- read.csv(here("data", "base_validation.csv") )
+```
+
+```{r}
+# Combining train and validation datasets to one
+# Because we are going to use CV to train the models later
+# naming it df_base_train2 to remain consistent with df naming
+df_base_train2  <- rbind(base_train, base_validation)
+
+cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
+```
+
+
+
+# Wind Model Training & Testing
+## Decision trees
+```{r}
+base_wind_model <- rpart(wind_max ~ track_min_dist + island_groups,
+                       data = df_base_train2,
+                       method = "anova")
+```
+
+```{r}
+dec_wind_pred <- predict(base_wind_model, base_test)
+
+rmse_dec_wind_pred <- rmse(actual = df_base_train2$wind_max, 
+                           predicted = dec_wind_pred)
+
+cat("rmse of decision tree of wind model", rmse_dec_wind_pred, sep = " ")
+```
+
+
+```{r}
+rpart.plot(base_wind_model)
+```
+
+### Optimizing For Best parameters
+```{r}
+set.seed(123)
+# Define training control
+control <- trainControl(method = "cv", number = 5)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+)
+
+# Train model
+dec_base_wind_model_tuned <- train(
+  wind_max ~ track_min_dist + island_groups, data = df_base_train2,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(dec_base_wind_model_tuned)
+plot(dec_base_wind_model_tuned)
+```
+
+```{r}
+rpart.plot(dec_base_wind_model_tuned$finalModel)
+```
+
+
+```{r}
+dec_wind_pred_tuned <- predict(dec_base_wind_model_tuned, base_test)
+
+rmse_dec_wind_pred_tuned <- rmse(actual = df_base_train2$wind_max, 
+                           predicted = dec_wind_pred_tuned)
+
+cat("rmse of tuned decision tree of wind model", rmse_dec_wind_pred_tuned, sep = " ")
+```
+
+## Linear Regression
+```{r}
+reg_wind_model <- lm(wind_max ~ track_min_dist + island_groups,
+                     data = df_base_train2)
+
+reg_wind_pred <- predict(reg_wind_model, base_test)
+
+rmse_reg_wind_pred <- rmse(actual = df_base_train2$wind_max, 
+                           predicted = dec_wind_pred)
+
+cat("rmse of decision tree of wind model", rmse_reg_wind_pred, sep = " ")
+```
+
+## Output
+We output the caret tuned decision tree model
+```{r}
+full_path <- here("adjusted SCM/base models")
+saveRDS(dec_base_wind_model_tuned, 
+        file = file.path(full_path, paste0("dec_base_wind_model_tuned", ".rds")))
+```
+
+
+# Rain Model Training & Testing
+```{r}
+base_rain_model <- rpart(rain_total ~ track_min_dist + island_groups,
+                      data = df_base_train2,
+                      method = "anova")
+```
+
+```{r}
+rpart.plot(base_rain_model)
+```
+
+```{r}
+dec_rain_pred <- predict(base_rain_model, base_test)
+
+rmse_dec_rain_pred <- rmse(actual = df_base_train2$rain_total, 
+                           predicted = dec_rain_pred)
+
+cat("rmse of decision tree of rain model", rmse_dec_rain_pred, sep = " ")
+```
+
+### Optimizing For Best parameters
+```{r}
+set.seed(123)
+# Define training control
+control <- trainControl(method = "cv", number = 5)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+)
+
+# Train model
+dec_base_rain_model_tuned <- train(
+  rain_total ~ track_min_dist + island_groups, data = df_base_train2,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(dec_base_rain_model_tuned)
+plot(dec_base_rain_model_tuned)
+```
+
+```{r}
+rpart.plot(dec_base_rain_model_tuned$finalModel)
+```
+
+```{r}
+dec_rain_pred_tuned <- predict(dec_base_rain_model_tuned, base_test)
+
+rmse_dec_rain_pred_tuned <- rmse(actual = df_base_train2$rain_total, 
+                           predicted = dec_wind_pred_tuned)
+
+cat("rmse of tuned decision tree of rain model", rmse_dec_rain_pred_tuned, sep = " ")
+```
+
+# Saving Tuned Rain_Total Decision Tree Model
+```{r}
+full_path <- here("adjusted SCM/base models")
+saveRDS(dec_base_rain_model_tuned, 
+        file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
+```
+
