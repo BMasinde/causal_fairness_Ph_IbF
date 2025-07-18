@@ -5,6 +5,7 @@ author: Brian K. Masinde
 ---
 
 ```{r}
+rm(list = ls())
 library(rpart)
 library(dplyr)
 library(caret)
@@ -54,7 +55,7 @@ model_names <- c("wind",
 # Create a named list to store the models
 base_models_list <- list()
 
-path <- here("adjusted SCM")
+path <- here("adjusted SCM/base models")
 for (model_name in model_names) {
   # Construct the file path for the model
   file_path <- file.path(path, paste0("base_", model_name, "_model.rds"))
@@ -197,8 +198,7 @@ damage_fit_reg_min <- train(damage_perc ~ track_min_dist +
                               rain_yellow_ls_frac +
                               rain_orange_ls_frac +
                               rain_red_ls_frac +
-                              island_groups   # Confounder adjustment
-                              , # Confounder adjustment
+                              island_groups, # Confounder adjustment
                               method = "xgbTree",
                               trControl = trainControl(method = "none"),
                               tuneGrid = best_params, # Use the best parameters here
@@ -278,34 +278,6 @@ for (param in names(best_params)) {
   mlflow_log_param(param, best_params[[param]])
 }
 
-# ---------- train using best parameters
-damage_fit_reg_min <- train(damage_perc ~  track_min_dist
-                              wind_max_pred +
-                              rain_total_pred +
-                              roof_strong_wall_strong_pred +
-                              roof_strong_wall_light_pred +
-                              roof_strong_wall_salv_pred +
-                              roof_light_wall_strong_pred +
-                              roof_light_wall_light_pred +
-                              roof_light_wall_salv_pred +
-                              roof_salv_wall_strong_pred +
-                              roof_salv_wall_light_pred +
-                              roof_salv_wall_salv_pred +
-                              wind_blue_ss_frac +
-                              wind_yellow_ss_frac +
-                              wind_orange_ss_frac +
-                              wind_red_ss_frac +
-                              rain_blue_ls_frac +
-                              rain_yellow_ls_frac +
-                              rain_orange_ls_frac +
-                              rain_red_ls_frac +
-                              island_groups,  # Confounder adjustment
-                              method = "xgbTree",
-                              trControl = trainControl(method = "none"),
-                              tuneGrid = best_params, # Use the best parameters here
-                              metric = "RMSE",
-                              data = df_base_train2
-                         )
 
 # obtain predicted values
 train_predictions <- predict(damage_fit_reg_min, newdata = df_base_train2)
