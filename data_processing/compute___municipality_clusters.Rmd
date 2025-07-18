@@ -15,9 +15,17 @@ library(purrr)
 
 ```{r}
 # read melor 
-melor15_CF_data <- read.csv(here("data", "melor15_CF_data.csv"))
+#melor15_CF_data <- read.csv(here("data", "melor15_CF_data.csv"))
 ```
 
+```{r , eval=FALSE}
+# we need the renaming function for cleaning
+source(here("R", "col_rename.R"))
+
+base_data_regions <- read.csv(here("data", "base_data_regions.csv"))
+
+base_data_regions <- col_rename(base_data_regions)
+```
 
 
 # Clustering municipalities across regions
@@ -25,16 +33,16 @@ I want to find municipalities that are more or less similar to each other across
 the regions.
 
 ```{r}
-mun_properties  <- melor15_CF_data %>%
+mun_properties  <- base_data_regions %>%
     distinct(Mun_Code,
-             blue_ss_frac,
-             blue_ls_frac,
-             red_ls_frac,
-             orange_ls_frac,
-             yellow_ss_frac,
-             red_ss_frac,
-             orange_ss_frac,
-             yellow_ls_frac,
+             #blue_ss_frac,
+             #blue_ls_frac,
+             #red_ls_frac,
+             #orange_ls_frac,
+             #yellow_ss_frac,
+             #red_ss_frac,
+             #orange_ss_frac,
+             #yellow_ls_frac,
              roof_strong_wall_strong,
              roof_strong_wall_light,
              roof_strong_wall_salv,
@@ -61,7 +69,7 @@ match_vars  <- c('roof_strong_wall_strong',
 
 # Normalize the variables using z-score
 mun_scaled <- mun_properties %>%
-  mutate(across(c(blue_ss_frac:roof_salv_wall_salv), scale))
+  mutate(across(c(roof_strong_wall_strong:roof_salv_wall_salv), scale))
 
 
 # Split dataset by group
@@ -164,8 +172,8 @@ summary_tbl
 ```
 
 # Output
-```{r}
+```{r ,eval=FALSE}
+# FOR REPRODUCIBILITY DO NOT OVERRIDE THE CLUSTERS
 # save the clusters
 save(cleaned_list, file = here("data", "clusters.RData"))
 ```
-
