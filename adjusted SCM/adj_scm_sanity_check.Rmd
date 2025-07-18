@@ -111,7 +111,7 @@ source(here("R", "adj_hurdle_function.R"))
 # setting threshold for classification step
 threshold = 0.35
 
-melor_preds <- adjHurdleFun(df = typhoon_melor_2015, scm_models_base = base_models_list,
+melor_preds <- adj_hurdle_function(df = typhoon_melor_2015, scm_models_base = base_models_list,
   scm_models_high = trunc_models_list, threshold = threshold
 )
 
