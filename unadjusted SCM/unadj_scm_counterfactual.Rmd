@@ -1,7 +1,9 @@
 ---
 title: "Counterfactual Unadjusted Causal Model"
-output: html_notebook
-author: Brain K. Masine
+author: "Brain K. Masinde"
+output:
+  html_document:
+    df_print: paged
 ---
 
 
