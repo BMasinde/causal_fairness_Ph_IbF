@@ -5,6 +5,7 @@ author: Brian K. Masinde
 ---
 
 ```{r}
+rm(list = ls())
 library(rpart)
 library(dplyr)
 library(caret)
@@ -235,7 +236,8 @@ xgb_model$bestTune
 best_params_model <- xgb_model$bestTune
 
 damage_fit_class_full <- train(
-          damage_binary_2 ~ wind_max_pred +
+          damage_binary_2 ~ track_min_dist +
+            wind_max_pred +
             rain_total_pred +
             roof_strong_wall_strong_pred +
             roof_strong_wall_light_pred +
@@ -254,8 +256,7 @@ damage_fit_class_full <- train(
             rain_yellow_ls_frac +
             rain_orange_ls_frac +
             rain_red_ls_frac +
-            island_groups +  # Confounder adjustment
-           track_min_dist, # Confounder adjustment
+            island_groups,  # Confounder adjustment
           data = df_base_train2, # USE TRAINING AND VALIDATION SETS COMBINED
           method = "xgbTree", # XGBoost method
           trControl = trainControl(method = "none"),  # No automatic validation
@@ -322,33 +323,33 @@ for (param in names(best_params_model)) {
 # Log the model type as a parameter
 mlflow_log_param("model_type", "scm-xgboost-classification")
 
-damage_fit_class_full <- train(
-          damage_binary_2 ~ wind_max_pred +
-            rain_total_pred +
-            roof_strong_wall_strong_pred +
-            roof_strong_wall_light_pred +
-            roof_strong_wall_salv_pred +
-            roof_light_wall_strong_pred +
-            roof_light_wall_light_pred +
-            roof_light_wall_salv_pred +
-            roof_salv_wall_strong_pred +
-            roof_salv_wall_light_pred +
-            roof_salv_wall_salv_pred +
-            wind_blue_ss_frac +
-            wind_yellow_ss_frac +
-            wind_orange_ss_frac +
-            wind_red_ss_frac +
-            rain_blue_ls_frac +
-            rain_yellow_ls_frac +
-            rain_orange_ls_frac +
-            rain_red_ls_frac +
-            island_groups +  # Confounder adjustment
-           track_min_dist, # Confounder adjustment
-          data = df_base_train2, # USE TRAINING AND VALIDATION SETS COMBINED
-          method = "xgbTree", # XGBoost method
-          trControl = trainControl(method = "none"),  # No automatic validation
-          tuneGrid = best_params_model # USE BEST PARAMETER
-        )
+# damage_fit_class_full <- train(
+#           damage_binary_2 ~ wind_max_pred +
+#             rain_total_pred +
+#             roof_strong_wall_strong_pred +
+#             roof_strong_wall_light_pred +
+#             roof_strong_wall_salv_pred +
+#             roof_light_wall_strong_pred +
+#             roof_light_wall_light_pred +
+#             roof_light_wall_salv_pred +
+#             roof_salv_wall_strong_pred +
+#             roof_salv_wall_light_pred +
+#             roof_salv_wall_salv_pred +
+#             wind_blue_ss_frac +
+#             wind_yellow_ss_frac +
+#             wind_orange_ss_frac +
+#             wind_red_ss_frac +
+#             rain_blue_ls_frac +
+#             rain_yellow_ls_frac +
+#             rain_orange_ls_frac +
+#             rain_red_ls_frac +
+#             island_groups +  # Confounder adjustment
+#            track_min_dist, # Confounder adjustment
+#           data = df_base_train2, # USE TRAINING AND VALIDATION SETS COMBINED
+#           method = "xgbTree", # XGBoost method
+#           trControl = trainControl(method = "none"),  # No automatic validation
+#           tuneGrid = best_params_model # USE BEST PARAMETER
+#         )
 
 
 # summarize results
