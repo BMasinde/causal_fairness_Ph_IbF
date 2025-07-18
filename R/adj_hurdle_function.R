@@ -12,7 +12,6 @@
 
 adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold) {
   
-  set.seed(0000)
   base_col_models_list <- list(
     wind_max = scm_models_base[["base_wind_model"]],
     rain_total = scm_models_base[["base_rain_model"]],
