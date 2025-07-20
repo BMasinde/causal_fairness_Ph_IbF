@@ -13,17 +13,17 @@
 adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
-    wind_max = scm_models_base[["base_wind_model"]],
-    rain_total = scm_models_base[["base_rain_model"]],
-    roof_strong_wall_strong = scm_models_base[["base_roof_strong_wall_strong_model"]],
-    roof_strong_wall_light = scm_models_base[["base_roof_strong_wall_light_model"]],
-    roof_strong_wall_salv = scm_models_base[["base_roof_strong_wall_salv_model"]],
-    roof_light_wall_strong = scm_models_base[["base_roof_light_wall_strong_model"]],
-    roof_light_wall_light = scm_models_base[["base_roof_light_wall_light_model"]],
-    roof_light_wall_salv = scm_models_base[["base_roof_light_wall_salv_model"]],
-    roof_salv_wall_strong = scm_models_base[["base_roof_salv_wall_strong_model"]],
-    roof_salv_wall_light = scm_models_base[["base_roof_salv_wall_light_model"]],
-    roof_salv_wall_salv = scm_models_base[["base_roof_salv_wall_salv_model"]]
+    wind_max = scm_models_base[["base_wind_model"]]
+    # rain_total = scm_models_base[["base_rain_model"]],
+    # roof_strong_wall_strong = scm_models_base[["base_roof_strong_wall_strong_model"]],
+    # roof_strong_wall_light = scm_models_base[["base_roof_strong_wall_light_model"]],
+    # roof_strong_wall_salv = scm_models_base[["base_roof_strong_wall_salv_model"]],
+    # roof_light_wall_strong = scm_models_base[["base_roof_light_wall_strong_model"]],
+    # roof_light_wall_light = scm_models_base[["base_roof_light_wall_light_model"]],
+    # roof_light_wall_salv = scm_models_base[["base_roof_light_wall_salv_model"]],
+    # roof_salv_wall_strong = scm_models_base[["base_roof_salv_wall_strong_model"]],
+    # roof_salv_wall_light = scm_models_base[["base_roof_salv_wall_light_model"]],
+    # roof_salv_wall_salv = scm_models_base[["base_roof_salv_wall_salv_model"]]
   )
   
   ## common predictions btw class & base regression
@@ -44,7 +44,7 @@ adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold)
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total_pred"]]
+    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total"]]
   }
   
   # WHY DO WE NEED THE OUTCOME VARIABLE HERE FACTOR COLUMNS
@@ -58,7 +58,7 @@ adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold)
   ## class_model expects variables "wind_max_pred" and "rain_total_pred" in dataframe df
   ## type = "prob" for custom threshold specification
   
-  prob_pred <- predict(scm_models_base$base_clas_full_model, df1, type = "prob")[,2]  # Probability of class 1
+  prob_pred <- predict(scm_models_base$base_class_full_model, df1, type = "prob")[,2]  # Probability of class 1
   ## assigning final class based on threshold
   class_pred <- ifelse(prob_pred > threshold, 1, 0) # low threhold of 0.35 can be changed to 0.65/0.75
   
@@ -75,17 +75,17 @@ adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold)
   ## wind and rainfall predictions are based on high impact data (damage >= 10)
   
   trunc_col_models_list <- list(
-    wind_max = scm_models_high[["trunc_wind_model"]],
-    rain_total = scm_models_high[["trunc_rain_model"]],
-    roof_strong_wall_strong = scm_models_high[["trunc_roof_strong_wall_strong_model"]],
-    roof_strong_wall_light = scm_models_high[["trunc_roof_strong_wall_light_model"]],
-    roof_strong_wall_salv = scm_models_high[["trunc_roof_strong_wall_salv_model"]],
-    roof_light_wall_strong = scm_models_high[["trunc_roof_light_wall_strong_model"]],
-    roof_light_wall_light = scm_models_high[["trunc_roof_light_wall_light_model"]],
-    roof_light_wall_salv = scm_models_high[["trunc_roof_light_wall_salv_model"]],
-    roof_salv_wall_strong = scm_models_high[["trunc_roof_salv_wall_strong_model"]],
-    roof_salv_wall_light = scm_models_high[["trunc_roof_salv_wall_light_model"]],
-    roof_salv_wall_salv = scm_models_high[["trunc_roof_salv_wall_salv_model"]]
+    wind_max = scm_models_high[["trunc_wind_model"]]
+    # rain_total = scm_models_high[["trunc_rain_model"]],
+    # roof_strong_wall_strong = scm_models_high[["trunc_roof_strong_wall_strong_model"]],
+    # roof_strong_wall_light = scm_models_high[["trunc_roof_strong_wall_light_model"]],
+    # roof_strong_wall_salv = scm_models_high[["trunc_roof_strong_wall_salv_model"]],
+    # roof_light_wall_strong = scm_models_high[["trunc_roof_light_wall_strong_model"]],
+    # roof_light_wall_light = scm_models_high[["trunc_roof_light_wall_light_model"]],
+    # roof_light_wall_salv = scm_models_high[["trunc_roof_light_wall_salv_model"]],
+    # roof_salv_wall_strong = scm_models_high[["trunc_roof_salv_wall_strong_model"]],
+    # roof_salv_wall_light = scm_models_high[["trunc_roof_salv_wall_light_model"]],
+    # roof_salv_wall_salv = scm_models_high[["trunc_roof_salv_wall_salv_model"]]
   )
   # add the predictions of wind and rainfall to the dataframe df
   df2 <- df %>%
@@ -100,7 +100,7 @@ adj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold)
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total_pred"]]
+    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total"]]
   }
   
   high_pred <- predict(scm_models_high$trunc_reg_model, df2)
