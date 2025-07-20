@@ -1,0 +1,170 @@
+---
+title: "Truncated model: Training and Testing Hazard Parent Nodes: Wind and Rain"
+output: html_notebook
+---
+
+```{r}
+# clear working environment
+rm(list = ls())
+
+# load libraries
+library(rpart)
+library(here)
+library(rpart.plot)
+library(caret)
+```
+
+# Reusable functions
+```{r}
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+```
+
+
+# Inputs
+```{r}
+# Recipe inputs
+trunc_train <- read.csv(here("data",  "truncated_train2.csv"))
+trunc_test <- read.csv(here("data", "truncated_test.csv"))
+
+nrow(trunc_train)
+```
+
+
+# Wind Model Training & Testing
+## Decision trees
+```{r}
+trunc_wind_model <- rpart(wind_max ~ track_min_dist + island_groups,
+                       data = trunc_train,
+                       method = "anova")
+```
+
+```{r}
+wind_pred <- predict(trunc_wind_model, trunc_test)
+
+rmse_wind_pred <- rmse(actual = trunc_test$wind_max, 
+                           predicted = wind_pred)
+
+cat("rmse of decision tree of wind model", rmse_wind_pred, sep = " ")
+```
+
+
+```{r}
+rpart.plot(trunc_wind_model)
+```
+
+### Optimizing For Best parameters
+```{r}
+set.seed(1234)
+# Define training control
+control <- trainControl(method = "cv", number = 8)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+)
+
+# Train model
+trunc_wind_model_tuned <- train(
+  wind_max ~ track_min_dist + island_groups, data = trunc_train,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(trunc_wind_model_tuned)
+plot(trunc_wind_model_tuned)
+```
+
+```{r}
+rpart.plot(trunc_wind_model_tuned$finalModel)
+```
+
+
+```{r}
+wind_pred_tuned <- predict(trunc_wind_model_tuned, trunc_test)
+
+rmse_wind_pred_tuned <- rmse(actual = trunc_test$wind_max, 
+                           predicted = wind_pred_tuned)
+
+cat("rmse of tuned decision tree of wind model", rmse_wind_pred_tuned, sep = " ")
+```
+
+
+## Output
+We output the caret tuned decision tree model
+```{r}
+full_path <- here("adjusted SCM/new trunc models")
+saveRDS(trunc_wind_model_tuned, 
+        file = file.path(full_path, paste0("trunc_wind_model_tuned", ".rds")))
+```
+
+
+# Rain Model Training & Testing
+```{r, echo=FALSE, eval=FALSE}
+# trunc_rain_model <- rpart(rain_total ~ track_min_dist + island_groups,
+#                       data = trunc_train,
+#                       method = "anova")
+```
+
+```{r}
+#rpart.plot(trunc_rain_model)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+# rain_pred <- predict(trunc_rain_model, trunc_test)
+# 
+# rmse_rain_pred <- rmse(actual = trunc_test$rain_total, 
+#                            predicted = rain_pred)
+# 
+# cat("rmse of decision tree of rain model", rmse_rain_pred, sep = " ")
+```
+
+### Optimizing For Best parameters
+```{r, echo=FALSE, eval=FALSE}
+# set.seed(123)
+# # Define training control
+# control <- trainControl(method = "cv", number = 5)
+# 
+# # Set tuning grid
+# #grid <- expand.grid(
+# #  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+# #)
+# 
+# grid <- expand.grid(maxdepth = 5:30)
+# 
+# # Train model
+# trunc_rain_model_tuned <- train(
+#   rain_total ~ track_min_dist + island_groups, data = trunc_train,
+#   method = "rpart2",
+#   trControl = control,
+#   tuneGrid = grid
+# )
+# 
+# print(trunc_rain_model_tuned)
+# plot(trunc_rain_model_tuned)
+```
+
+```{r}
+# rpart.plot(trunc_rain_model_tuned$finalModel)
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+# rain_pred_tuned <- predict(trunc_rain_model_tuned, trunc_test)
+# 
+# rmse_rain_pred_tuned <- rmse(actual = trunc_test$rain_total, 
+#                            predicted = rain_pred_tuned)
+# 
+# cat("rmse of tuned decision tree of rain model", rmse_rain_pred_tuned, sep = " ")
+```
+
+
+# Saving Tuned Rain_Total Decision Tree Model
+```{r, echo=FALSE, eval=FALE}
+# full_path <- here("adjusted SCM/new base models")
+# saveRDS(dec_base_rain_model_tuned, 
+#         file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
+```
+
