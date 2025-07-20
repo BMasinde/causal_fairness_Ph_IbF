@@ -116,7 +116,7 @@ cat("rmse of decision tree of wind model", rmse_reg_wind_pred, sep = " ")
 ## Output
 We output the caret tuned decision tree model
 ```{r}
-full_path <- here("adjusted SCM/base models")
+full_path <- here("adjusted SCM/new base models")
 saveRDS(dec_base_wind_model_tuned, 
         file = file.path(full_path, paste0("dec_base_wind_model_tuned", ".rds")))
 ```
@@ -180,7 +180,7 @@ cat("rmse of tuned decision tree of rain model", rmse_dec_rain_pred_tuned, sep =
 
 # Saving Tuned Rain_Total Decision Tree Model
 ```{r}
-full_path <- here("adjusted SCM/base models")
+full_path <- here("adjusted SCM/new base models")
 saveRDS(dec_base_rain_model_tuned, 
         file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
 ```
