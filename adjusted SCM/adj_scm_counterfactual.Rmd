@@ -30,7 +30,7 @@ melor_2015 <- read.csv(here("data", "melor15_CF_data.csv"))
 ```
 
 ```{r}
-# this is going to load cleaned_list which is the list with the clusters
+# this is going to load mun_clusters which is the list with the clusters
 load(here("data", "clusters.RData"))
 ```
 
@@ -38,30 +38,45 @@ load(here("data", "clusters.RData"))
 
 ## Importing trained models
 ```{r}
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
 
-# base models
-base_rds_path <- here("adjusted SCM/base models")
-base_rds_files <- list.files(base_rds_path, pattern = "\\.rds$", full.names = TRUE)
-base_models <- lapply(base_rds_files, readRDS)
+base_models_list <- list()
 
-# print names of the loaded objects, making sure they are correct
-names(base_models) <- basename(base_rds_files)
+# base models file path
+base_file_path <- here("adjusted SCM/new base models")
+base_wind_model <- readRDS(file.path(base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
 
-# Display the list
-print(base_models)
+
+base_class_full_model <- readRDS(file.path(base_file_path, 
+                                     "damage_fit_class_full.rds"))
+base_reg_model <- readRDS(file.path(base_file_path, 
+                                     "base_reg_model.rds"))
+
+base_models_list <- list("base_wind_model" = base_wind_model, 
+                         "base_class_full_model" = base_class_full_model, 
+                         "base_reg_model" = base_reg_model)
 ```
 
 ```{r}
-# trunc models
-trunc_rds_path <- here("adjusted SCM/trunc models")
-trunc_rds_files <- list.files(trunc_rds_path, pattern = "\\.rds$", full.names = TRUE)
-trunc_models <- lapply(trunc_rds_files, readRDS)
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
 
-# print names of the loaded objects, making sure they are correct
-names(trunc_models) <- basename(trunc_rds_files)
+# empty list
+trunc_models_list <- list()
 
-# Display the list
-print(trunc_models)
+trunc_file_path <- here("adjusted SCM/new trunc models")
+
+trunc_wind_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+
+
+trunc_reg_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_reg_model.rds"))
+
+trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                          "trunc_reg_model" = trunc_reg_model)
 ```
 
 
@@ -69,40 +84,11 @@ print(trunc_models)
 # calling hurdle function
 source(here("R", "adj_hurdle_function.R"))
 
-names(base_models)  <- c("base_clas_full_model",
-                         "base_rain_model",
-                         "base_reg_model",
-                         "base_roof_light_wall_light_model",
-                         "base_roof_light_wall_salv_model",
-                         "base_roof_light_wall_strong_model",
-                         "base_roof_salv_wall_light_model",
-                         "base_roof_salv_wall_salv_model",
-                         "base_roof_salv_wall_strong_model",
-                         "base_roof_strong_wall_light_model",
-                         "base_roof_strong_wall_salv_model",
-                         "base_roof_strong_wall_strong_model",
-                          "base_wind_model"
-                        )
-
-# makes sure the list has correct names
-names(trunc_models)  <- c("trunc_rain_model",
-                          "trunc_reg_model",
-                          "trunc_roof_light_wall_light_model",
-                          "trunc_roof_light_wall_salv_model",
-                          "trunc_roof_light_wall_strong_model",
-                          "trunc_roof_salv_wall_light_model",
-                          "trunc_roof_salv_wall_salv_model",
-                          "trunc_roof_salv_wall_strong_model",
-                          "trunc_roof_strong_wall_light_model",
-                          "trunc_roof_strong_wall_salv_model",
-                          "trunc_roof_strong_wall_strong_model",
-                          "trunc_wind_model"
-                         )
 
 adj_counterfactual_hurdle_preds  <- adj_hurdle_function(df = melor_2015,
-                                               scm_models_base = base_models,
-                                               scm_models_high = trunc_models,
-                                               threshold = 0.35 # threshold in train/test models is 0.35
+                                               scm_models_base = base_models_list,
+                                               scm_models_high = trunc_models_list,
+                                               threshold = 0.3 # threshold in train/test models is 0.35
                                                )
 ```
 
@@ -118,9 +104,9 @@ plots_list  <- list()
 means_list  <- list()
 median_list  <- list()
 
-for (i in seq_along(cleaned_list)) {
+for (i in seq_along(mun_clusters)) {
   # Get the current entry
-  current_entry <- cleaned_list[[i]]
+  current_entry <- mun_clusters[[i]]
 
   # Convert the nested list entry to a data frame format
   plot_data <- bind_rows(lapply(names(current_entry), function(region) {
