@@ -1,11 +1,16 @@
 ---
 title: "Unadjusted Causal Model Testing"
-output: html_notebook
-author: Brain K. Masinde
+author: "Brain K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
+# Environment: Cleaning environment
 rm(list = ls())
+
+# Libraries: Load 
 library(rpart)
 library(dplyr)
 library(caret)
@@ -36,47 +41,45 @@ nrow(df_test)
 
 # Trained models
 ```{r}
-# base models
-model_names <- c("clas_full",
-                 "rain",
-                 "reg",
-                 "wind"
-                )
+# Import trained BASE models
+#   From folder: unadjusted SCM/new base models
 
-# Create a named list to store the models
 base_models_list <- list()
 
-# Loop over each model name to construct the file path and read the RDS file
-path_base <- here("unadjusted SCM/base models")
-for (model_name in model_names) {
-  # Construct the file path for the model
-  file_path <- file.path(path_base, paste0("base_", model_name, "_model.rds"))
+# base models file path
+base_file_path <- here("unadjusted SCM/new base models")
+base_wind_model <- readRDS(file.path(base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
 
-  # Read the model and store it in the list with the model name as the key
-  base_models_list[[paste0("base_", model_name, "_model")]] <- readRDS(file_path)
-}
 
+base_class_full_model <- readRDS(file.path(base_file_path, 
+                                     "damage_fit_class_full.rds"))
+base_reg_model <- readRDS(file.path(base_file_path, 
+                                     "base_reg_model.rds"))
+
+base_models_list <- list("base_wind_model" = base_wind_model, 
+                         "base_class_full_model" = base_class_full_model, 
+                         "base_reg_model" = base_reg_model)
 ```
 
 ```{r}
-# reading truncated models
-trunc_model_names <- c("rain",
-                       "reg",
-                        "wind"
-                )
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
 
-# Create a named list to store the models
+# empty list
 trunc_models_list <- list()
 
-# Loop over each model name to construct the file path and read the RDS file
-path_trunc <- here("unadjusted SCM/trunc models")
-for (model_name in trunc_model_names) {
-  # Construct the file path for the model
-  file_path <- file.path(path_trunc, paste0("trunc_", model_name, "_model.rds"))
+trunc_file_path <- here("unadjusted SCM/new trunc models")
 
-  # Read the model and store it in the list with the model name as the key
-  trunc_models_list[[paste0("trunc_", model_name, "_model")]] <- readRDS(file_path)
-}
+trunc_wind_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+
+
+trunc_reg_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_damage_fit_reg.rds"))
+
+trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                          "trunc_reg_model" = trunc_reg_model)
 ```
 
 
@@ -91,7 +94,7 @@ names(base_models_list)
 # Hurdle Testing
 ```{r}
 # setting threshold for classification step
-threshold = 0.35
+threshold = 0.3
 
 source(here("R", "unadj_hurdle_function.R"))
 
@@ -151,7 +154,7 @@ suppressWarnings(try(mlflow_end_run(), silent = TRUE))
 
 # set experiment
 # Logging metrics for model training and the parameters used
-mlflow_set_experiment(experiment_name = "R - U-SCM - Hurlde - CV (Test metircs)")
+mlflow_set_experiment(experiment_name = "Attempt 2: R - U-SCM - Hurlde - CV (Test metircs)")
 
 # Ensure that MLflow has only one run. Start MLflow run once.
 run_name <- paste("Hurdle Run", Sys.time())  # Unique name using current time
