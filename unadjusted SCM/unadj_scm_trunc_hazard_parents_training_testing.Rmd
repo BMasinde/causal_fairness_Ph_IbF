@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+# Environment: Clear workingspace
+rm(list = ls())
+
+# load libraries
+library(rpart)
+library(here)
+library(rpart.plot)
+library(caret)
+```
+
+# Reusable functions
+```{r}
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+```
+
+# Inputs
+```{r}
+# Recipe inputs
+trunc_train <- read.csv(here("data",  "truncated_train2.csv"))
+trunc_test <- read.csv(here("data", "truncated_test.csv"))
+
+nrow(trunc_train)
+```
+
+# Wind Model Training & Testing
+## Decision trees
+```{r}
+trunc_wind_model <- rpart(wind_max ~ track_min_dist,
+                       data = trunc_train,
+                       method = "anova")
+```
+
+```{r}
+wind_pred <- predict(trunc_wind_model, trunc_test)
+
+rmse_wind_pred <- rmse(actual = trunc_test$wind_max, 
+                           predicted = wind_pred)
+
+cat("rmse of decision tree of wind model", rmse_wind_pred, sep = " ")
+```
+
+
+```{r}
+rpart.plot(trunc_wind_model)
+```
+
+### Optimizing For Best parameters
+```{r}
+set.seed(1234)
+# Define training control
+control <- trainControl(method = "cv", number = 8)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+)
+
+# Train model
+trunc_wind_model_tuned <- train(
+  wind_max ~ track_min_dist, data = trunc_train,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(trunc_wind_model_tuned)
+plot(trunc_wind_model_tuned)
+```
+
+
+```{r}
+rpart.plot(trunc_wind_model_tuned$finalModel)
+```
+
+```{r}
+wind_pred_tuned <- predict(trunc_wind_model_tuned, trunc_test)
+
+rmse_wind_pred_tuned <- rmse(actual = trunc_test$wind_max, 
+                           predicted = wind_pred_tuned)
+
+cat("rmse of tuned decision tree of wind model", rmse_wind_pred_tuned, sep = " ")
+```
+
+
+## Output
+We output the caret tuned decision tree model
+```{r}
+full_path <- here("unadjusted SCM/new trunc models")
+saveRDS(trunc_wind_model_tuned, 
+        file = file.path(full_path, paste0("trunc_wind_model_tuned", ".rds")))
+```
