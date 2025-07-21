@@ -1,10 +1,16 @@
 ---
-title: "Model Training: XGBOOST Classifier"
-output: html_notebook
-author: Brain K. Masinde
+title: 'Model Training: XGBOOST Classifier'
+author: "Brain K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ```{r}
+# Environment Cleaning: Clearing workspace
+rm(list = ls())
+
+# load packages
 library(rpart)
 library(dplyr)
 library(caret)
@@ -46,28 +52,33 @@ df_base_train$damage_binary_2 <- factor(df_base_train$damage_binary,
 
 # Model Training using CV
 ```{r}
-# setting seed for reproducibility
+# Set up train control with custom seeds
+n_folds <- 7
+n_models <- 25  # adjust depending on search space size, affects seeds length
+
+
+# Reproducibility: Defining seeds (a little bit complicated because of parallel processing)
+
+#  Generate a reproducible list of seeds
 set.seed(1234)
 
-tune_grid <- expand.grid(
-  nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
-  max_depth = c(2, 3, 4, 6),
-  eta = c(0.09, 0.1, 0.11, 0.12),
-  gamma = c(0, 1, 2, 3, 4),
-  colsample_bytree = c(0.9, 1.0, 1.1),
-  min_child_weight = c(2, 3, 4),
-  subsample = c(0.5, 0.6, 0.7, 0.8)
-)
+seeds_list <- vector(mode = "list", length = n_folds + 1)
+for (i in 1:n_folds) {
+  seeds_list[[i]] <- sample.int(1000000, n_models)  # one seed per model per fold
+}
+seeds_list[[n_folds + 1]] <- sample.int(1000000, 1)  # for final model
+
 
 
 # Set up train control with 10-fold cross-validation
 train_control <- trainControl(
   method = "cv",
-  number = 7,
+  number = n_folds, # number of cross-validation folds
   classProbs = TRUE,  # Needed for AUC calculation
   summaryFunction = twoClassSummary,
   sampling = "smote", # caret automatically identifies minority class
-  search = "random" # random selection of the expanded grid
+  search = "random", # random selection of the expanded grid
+  seeds = seeds_list, # Ensures reproducibility
 )
 
 # Detect and register the number of available cores (use all but one)
@@ -102,7 +113,7 @@ system.time({
         data = df_base_train,
         method = "xgbTree",
         trControl = train_control,
-        tuneGrid = tune_grid,
+        tuneLength = n_models,  #  this replaces tuneGrid
         metric = "ROC" # "xgbTree" does not support other metrics for classification tasks (e.g., Kappa or F1)
     )
     Sys.sleep(2)  # This is just an example to simulate a delay
@@ -181,7 +192,7 @@ suppressWarnings(try(mlflow_end_run(), silent = TRUE))
 
 # set experiment
 # Logging metrics for model training and the parameters used
-mlflow_set_experiment(experiment_name = "ass-XGBOOST classification - CV (Training metircs)")
+mlflow_set_experiment(experiment_name = "Attempt 2: R ass-XGBOOST classification - CV (Training metircs)")
 
 # Ensure that MLflow has only one run. Start MLflow run once.
 run_name <- paste("XGBoost Run", Sys.time())  # Unique name using current time
@@ -203,32 +214,6 @@ for (param in names(best_params_model)) {
 
 # Log the model type as a parameter
 mlflow_log_param("model_type", "ass-xgboost-classification")
-
-damage_fit_class_full <- train(damage_binary_2 ~ track_min_dist + 
-                               wind_max +
-                               rain_total +
-                               roof_strong_wall_strong +
-                               roof_strong_wall_light +
-                               roof_strong_wall_salv +
-                               roof_light_wall_strong +
-                               roof_light_wall_light +
-                               roof_light_wall_salv +
-                               roof_salv_wall_strong +
-                               roof_salv_wall_light +
-                               roof_salv_wall_salv +
-                               blue_ss_frac +
-                               yellow_ss_frac +
-                               orange_ss_frac +
-                               red_ss_frac +
-                               blue_ls_frac +
-                               yellow_ls_frac +
-                               orange_ls_frac +
-                               red_ls_frac, 
-          data = df_base_train, # USE TRAINING AND VALIDATION SETS COMBINED
-          method = "xgbTree", # XGBoost method
-          trControl = trainControl(method = "none"),  # No automatic validation
-          tuneGrid = best_params_model # USE BEST PARAMETER
-        )
 
 
 # summarize results
@@ -282,7 +267,8 @@ auc_value
 
 ```{r}
 ## assigning final class based on threshold
-y_pred <- ifelse(y_preds_probs > 0.35, 1, 0)
+threshold = 0.3
+y_pred <- ifelse(y_preds_probs > threshold, 1, 0)
 
 y_pred  <- factor(y_pred, levels = c("0", "1"),  # Your current levels
                                        labels = c("Damage_below_10", "Damage_above_10"))  # New valid labels
@@ -292,6 +278,19 @@ conf_matrix <- confusionMatrix(as.factor(y_pred),
                      positive = "Damage_above_10"
                      )
 print(conf_matrix)
+```
+
+```{r}
+cat("Precision of Positive class: Damage above 10:", conf_matrix$byClass['Precision'], sep = " ")
+```
+
+```{r}
+cat("Recall of postive class: Damage above 10:", conf_matrix$byClass['Recall'], sep = " ")
+```
+
+
+```{r}
+cat("F1 score of positive class: Damage above 10:", conf_matrix$byClass['F1'], sep = " ")
 ```
 
 # Logging Test metrics - Mlflow 
@@ -304,7 +303,7 @@ suppressWarnings(try(mlflow_end_run(), silent = TRUE))
 
 # set experiment
 # Logging metrics for model training and the parameters used
-mlflow_set_experiment(experiment_name = "ass- XGBOOST classification - CV (Test metircs)")
+mlflow_set_experiment(experiment_name = "Attempt 2: R ass- XGBOOST classification - CV (Test metircs)")
 
 # Ensure that MLflow has only one run. Start MLflow run once.
 run_name <- paste("XGBoost Run", Sys.time())  # Unique name using current time
@@ -331,8 +330,10 @@ for (param in names(parameters_used)) {
 mlflow_log_param("model_type", "ass-xgboost-classification")
 
 # predicting
+#   Threshold
+threshold = 0.3
 y_preds_probs <- predict(damage_fit_class_full, newdata = base_test, type = "prob")[,2]  # Probability of class 1
-y_pred <- ifelse(y_preds_probs > 0.35, 1, 0)
+y_pred <- ifelse(y_preds_probs > threshold, 1, 0)
 
 y_pred  <- factor(y_pred, levels = c("0", "1"),  # Your current levels
                                        labels = c("Damage_below_10", "Damage_above_10"))  # New valid labels
@@ -401,5 +402,22 @@ for (grp in levels(base_test$island_groups)) {
 # Outputs
 ```{r, eval=FALSE}
 saveRDS(damage_fit_class_full, here("associational XGBOOST", "ass_XGBOOST_class.rds"))
+```
+
+
+# OLD CODE
+```{r, eval=FALSE, echo=FALSE}
+# # setting seed for reproducibility
+# set.seed(1234)
+# 
+# tune_grid <- expand.grid(
+#   nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
+#   max_depth = c(2, 3, 4, 6),
+#   eta = c(0.09, 0.1, 0.11, 0.12),
+#   gamma = c(0, 1, 2, 3, 4),
+#   colsample_bytree = c(0.9, 1.0, 1.1),
+#   min_child_weight = c(2, 3, 4),
+#   subsample = c(0.5, 0.6, 0.7, 0.8)
+# )
 ```
 
