@@ -1,13 +1,13 @@
 ---
 title: "Counterfactual Testing Associational Model"
 output:
+  pdf_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  pdf_document: default
 ---
 
-```{r}
+```{r, message=FALSE}
 # clear the working space
 rm(list = ls())
 
@@ -29,7 +29,7 @@ melor_2015 <- read.csv(here("data", "melor15_CF_data.csv"))
 ```
 
 ```{r}
-# this is going to load cleaned_list which is the list with the clusters
+# this is going to load mun_clusters which is the list with the clusters
 load(here("data", "clusters.RData"))
 ```
 
@@ -48,7 +48,7 @@ clas_model  <- readRDS(here("associational XGBOOST", "ass_XGBOOST_class.rds"))
 source(here("R", "ass_hurdle_function.R"))
 
 # setting threshold for classification step
-threshold = 0.35
+threshold = 0.30
 
 preds <- ass_hurdle_function(df = melor_2015, ass_clas_model = clas_model,
   ass_base_model = base_reg, ass_trunc_model = trunc_reg ,threshold = threshold)
@@ -67,9 +67,9 @@ plots_list  <- list()
 means_list  <- list()
 median_list  <- list()
 
-for (i in seq_along(cleaned_list)) {
+for (i in seq_along(mun_clusters)) {
   # Get the current entry
-  current_entry <- cleaned_list[[i]]
+  current_entry <- mun_clusters[[i]]
 
   # Convert the nested list entry to a data frame format
   plot_data <- bind_rows(lapply(names(current_entry), function(region) {
