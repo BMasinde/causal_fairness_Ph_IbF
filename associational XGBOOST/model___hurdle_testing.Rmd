@@ -1,12 +1,16 @@
 ---
 title: "Hurdle Testing Associational Model"
-output: html_notebook
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 
-```{r}
+```{r, message=FALSE}
+# Environment Cleaning: Clearing workspace
 rm(list = ls())
 
+# load packages
 library(rpart)
 library(dplyr)
 library(caret)
@@ -52,7 +56,7 @@ clas_model  <- readRDS(here("associational XGBOOST", "ass_XGBOOST_class.rds"))
 source(here("R", "ass_hurdle_function.R"))
 
 # setting threshold for classification step
-threshold = 0.35
+threshold = 0.3
 
 preds <- ass_hurdle_function(df = df_test, ass_clas_model = clas_model,
   ass_base_model = base_reg, ass_trunc_model = trunc_reg ,threshold = threshold)
