@@ -1,16 +1,17 @@
 ---
 title: "Un-adjusted SCM Truncated Regression training"
-output: html_notebook
-author: Brain K. Masinde
+author: "Brain K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
-# clearing workspace
+
+```{r, message=FALSE}
+# Environment: Cleaning environment
 rm(list = ls())
-```
 
-
-```{r}
+# Libraries: Load 
 library(rpart)
 library(dplyr)
 library(caret)
@@ -36,37 +37,17 @@ nrow(df_trunc_train2)
 
 
 ```{r}
-# Training track_min_dist ~ island_groups
-# we will need to also include island_groups
-# in the final outcome prediction model to adjust for the confounding
-
-#trunc_track_model  <- rpart(track_min_dist  ~ island_groups,
-#                          data = df_trunc_train2,
-#                          method = "anova")
-
-# Fitting tree for wind and rain
-# wind_max prediction using decision trees
-
-trunc_wind_model <- rpart(wind_max ~ track_min_dist,
-                       data = df_trunc_train2,
-                       method = "anova")
-
-trunc_rain_model <- rpart(rain_total ~ track_min_dist,
-                       data = df_trunc_train2,
-                       method = "anova")
+# Importing trained model
+trunc_wind_model <- readRDS(here("unadjusted SCM/new trunc models", 
+                                "trunc_wind_model_tuned.rds"))
 ```
 
 ```{r}
-model_list <- list(
-  #track_min_dist = trunc_track_model,
-  wind_max = trunc_wind_model,
-  rain_total = trunc_rain_model
-)
-
 # Apply predictions efficiently
-df_trunc_train2 <- df_trunc_train2 %>%
-  mutate(across(names(model_list), ~ predict(model_list[[cur_column()]],
-                                             newdata = df_trunc_train2), .names = "{.col}_pred"))
+# Predict using model "base_wind_model"
+# To get variable: wind_max_pred
+df_trunc_train2[["wind_max_pred"]] <- predict(trunc_wind_model, newdata = df_trunc_train2)
+
 
 # Define wind and rain interaction variables
 wind_fractions <- c("blue_ss_frac", "yellow_ss_frac", "orange_ss_frac", "red_ss_frac")
@@ -82,29 +63,35 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total_pred
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["rain_total_pred"]]
+  df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["rain_total"]]
 }
 ```
 
 ```{r}
-set.seed(1234)
-tune_grid <- expand.grid(
-   nrounds = c(200, 250, 275, 300, 350),
-   max_depth = c(3, 6),
-   eta = c(0.01, 0.05, 0.1, 0.2, 0.3),
-   gamma = c(0, 1, 5, 10),
-   colsample_bytree = c(0.5, 0.7, 0.8, 1.0),
-   min_child_weight = c(1, 3, 5, 10),
-   subsample = c(0.5, 0.7, 0.8, 1.0)
- )
+# TRUNCATED REGRESSION MODEL TRAINING AND TUNING USING CV
+# CV folds and models
+n_folds <- 10
+n_models <- 25  # adjust depending on search space size, affects seeds length
 
+
+# Reproducibility: Defining seeds (a little bit complicated because of parallel processing)
+
+#  Generate a reproducible list of seeds
+set.seed(1234)
+
+seeds_list <- vector(mode = "list", length = n_folds + 1)
+for (i in 1:n_folds) {
+  seeds_list[[i]] <- sample.int(1000000, n_models)  # one seed per model per fold
+}
+seeds_list[[n_folds + 1]] <- sample.int(1000000, 1)  # for final model
 
 # Set up train control with 10-fold cross-validation
 train_control <- trainControl(
   method = "cv",
-  number = 10,
+  number = n_folds,
   summaryFunction = defaultSummary,
-  search = "random" # random selection of the expanded grid
+  search = "random", # random selection of the expanded grid
+  seeds = seeds_list
 )
 
 # Detect and register the number of available cores (use all but one)
@@ -118,7 +105,7 @@ trunc_xgb_reg_model <- train(
   damage_perc ~ 
     track_min_dist +
     wind_max_pred +
-    rain_total_pred +
+    rain_total +
     roof_strong_wall_strong +
     roof_strong_wall_light +
     roof_strong_wall_salv +
@@ -139,7 +126,7 @@ trunc_xgb_reg_model <- train(
   data = df_trunc_train2,
   method = "xgbTree",
   trControl = train_control,
-  tuneGrid = tune_grid,
+  tuneLength = n_models,  #  this replaces tuneGrid
   metric = "RMSE"  # Optimize based on RMSE
 )
 Sys.sleep(2)  # This is just an example to simulate a delay
@@ -158,7 +145,7 @@ mlflow_set_tracking_uri("http://127.0.0.1:5000")
 suppressWarnings(try(mlflow_end_run(), silent = TRUE))
 
 # Logging metrics for model training and the parameters used
-mlflow_set_experiment(experiment_name = "R - U-SCM - XGBOOST Truncated regression - CV (Training metircs)")
+mlflow_set_experiment(experiment_name = "Attempt 2 : R - U-SCM - XGBOOST Truncated regression - CV (Training metircs)")
 
 # Ensure that MLflow has only one run. Start MLflow run once.
 run_name <- paste("XGBoost Run", Sys.time())  # Unique name using current time
@@ -182,7 +169,7 @@ for (param in names(best_params)) {
 # ---------- train using best parameters
 trunc_damage_fit_reg <- train(damage_perc ~  track_min_dist +
                               wind_max_pred +
-                              rain_total_pred +
+                              rain_total +
                               roof_strong_wall_strong +
                               roof_strong_wall_light +
                               roof_strong_wall_salv +
@@ -254,22 +241,51 @@ mlflow_log_metric("RMSE_100", RMSE_100)
 mlflow_end_run()
 ```
 
-
+# Output
 ```{r}
-#  Models in a list 
-models <- list(trunc_damage_fit_reg,
-               trunc_wind_model,
-               trunc_rain_model
-              )
-model_names <- c("trunc_reg_model",
-                 "trunc_wind_model",
-                 "trunc_rain_model"
-                )
 
 # Saving trained XGBOOST model 
-full_path <- here("unadjusted SCM/trunc models")
-mapply(function(model, name) {
-  saveRDS(model, file = paste0(full_path, "/", name, ".rds"))
-}, models, model_names)
+full_path <- here("unadjusted SCM/new trunc models")
+
+saveRDS(trunc_damage_fit_reg, file = file.path(full_path, "trunc_damage_fit_reg.rds"))
+
+```
+
+# OLD CODE
+```{r, echo=FALSE, eval=FALSE}
+# df_trunc_train2 <- df_trunc_train2 %>%
+#   mutate(across(names(model_list), ~ predict(model_list[[cur_column()]],
+#                                              newdata = df_trunc_train2), .names = "{.col}_pred"))
+# 
+# # Define wind and rain interaction variables
+# wind_fractions <- c("blue_ss_frac", "yellow_ss_frac", "orange_ss_frac", "red_ss_frac")
+# rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_frac")
+# 
+# # Compute wind interaction terms dynamically
+# for (col in wind_fractions) {
+#   print(col)
+#   new_col_name <- paste0("wind_", col)
+#   df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["wind_max_pred"]]
+# }
+# 
+# # Multiply rain fractions by rain_total_pred
+# for (col in rain_fractions) {
+#   new_col_name <- paste0("rain_", col)
+#   df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["rain_total_pred"]]
+# }
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# OLD TUNING GRID
+# set.seed(1234)
+# tune_grid <- expand.grid(
+#    nrounds = c(200, 250, 275, 300, 350),
+#    max_depth = c(3, 6),
+#    eta = c(0.01, 0.05, 0.1, 0.2, 0.3),
+#    gamma = c(0, 1, 5, 10),
+#    colsample_bytree = c(0.5, 0.7, 0.8, 1.0),
+#    min_child_weight = c(1, 3, 5, 10),
+#    subsample = c(0.5, 0.7, 0.8, 1.0)
+#  )
 ```
 
