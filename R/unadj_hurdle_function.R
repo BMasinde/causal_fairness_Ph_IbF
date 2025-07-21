@@ -13,8 +13,8 @@
 unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
-    wind_max = scm_models_base[["base_wind_model"]],
-    rain_total = scm_models_base[["base_rain_model"]]
+    wind_max = scm_models_base[["base_wind_model"]]
+    #rain_total = scm_models_base[["base_rain_model"]]
   )
   
   ## common predictions btw class & base regression
@@ -35,7 +35,7 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total_pred"]]
+    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total"]]
   }
   
   
@@ -48,8 +48,8 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   ## class_model should return predicted classes and not probs.
   ## class_model expects variables "wind_max_pred" and "rain_total_pred" in dataframe df
   ## type = "prob" for custom threshold specification
-  set.seed(42)
-  prob_pred <- predict(scm_models_base$base_clas_full_model, df1, type = "prob")[,2]  # Probability of class 1
+ 
+  prob_pred <- predict(scm_models_base$base_class_full_model, df1, type = "prob")[,2]  # Probability of class 1
   ## assigning final class based on threshold
   class_pred <- ifelse(prob_pred > threshold, 1, 0) # low threhold of 0.35 can be changed to 0.65/0.75
   
@@ -66,8 +66,8 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   ## wind and rainfall predictions are based on high impact data (damage >= 10)
   
   trunc_col_models_list <- list(
-    wind_max = scm_models_high[["trunc_wind_model"]],
-    rain_total = scm_models_high[["trunc_rain_model"]]
+    wind_max = scm_models_high[["trunc_wind_model"]]
+    #rain_total = scm_models_high[["trunc_rain_model"]]
   )
   # add the predictions of wind and rainfall to the dataframe df
   df2 <- df %>%
@@ -83,7 +83,7 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total_pred"]]
+    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total"]]
   }
   
   high_pred <- predict(scm_models_high$trunc_reg_model, df2)
