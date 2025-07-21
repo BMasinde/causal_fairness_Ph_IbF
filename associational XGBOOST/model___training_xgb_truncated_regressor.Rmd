@@ -1,10 +1,16 @@
 ---
-title: "Model Training: XGBOOST truncated regressor"
-output: html_notebook
-author: Brian K. Masinde
+title: 'Model Training: XGBOOST truncated regressor'
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ```{r}
+# Environment Cleaning: Clearing workspace
+rm(list = ls())
+
+# load packages
 library(rpart)
 library(dplyr)
 library(caret)
@@ -20,9 +26,9 @@ library(here)
 # Inputs
 ```{r}
 # Recipe inputs
-truncated_train <- write.csv(here("data", "truncated_train.csv"))
-truncated_validation <- write.csv(here("data", "truncated_validation.csv"))
-truncated_test <- write.csv(here("data", "truncated_test"))
+truncated_train <- read.csv(here("data", "truncated_train.csv"))
+truncated_validation <- read.csv(here("data", "truncated_validation.csv"))
+truncated_test <- read.csv(here("data", "truncated_test.csv"))
 ```
 
 ```{r}
@@ -36,24 +42,29 @@ cat("number of rows in combined train data:", nrow(df_trunc_train2), sep = " ")
 
 # Model training
 ```{r}
-set.seed(1234)
-tune_grid <- expand.grid(
-   nrounds = c(200, 250, 275, 300, 350),
-   max_depth = c(3, 6),
-   eta = c(0.01, 0.05, 0.1, 0.2, 0.3),
-   gamma = c(0, 1, 5, 10),
-   colsample_bytree = c(0.5, 0.7, 0.8, 1.0),
-   min_child_weight = c(1, 3, 5, 10),
-   subsample = c(0.5, 0.7, 0.8, 1.0)
- )
+# Set up train control with custom seeds
+n_folds <- 10
+n_models <- 25  # adjust depending on search space size, affects seeds length
 
+
+# Reproducibility: Defining seeds (a little bit complicated because of parallel processing)
+
+#  Generate a reproducible list of seeds
+set.seed(1234)
+
+seeds_list <- vector(mode = "list", length = n_folds + 1)
+for (i in 1:n_folds) {
+  seeds_list[[i]] <- sample.int(1000000, n_models)  # one seed per model per fold
+}
+seeds_list[[n_folds + 1]] <- sample.int(1000000, 1)  # for final model
 
 # Set up train control with 10-fold cross-validation
 train_control <- trainControl(
   method = "cv",
-  number = 10,
+  number = n_folds,
   summaryFunction = defaultSummary,
-  search = "random" # random selection of the expanded grid
+  search = "random", # random selection of the expanded grid
+  seeds = seeds_list
 )
 
 # Detect and register the number of available cores (use all but one)
@@ -87,7 +98,7 @@ trunc_xgb_reg_model <- train(
   data = df_trunc_train2,
   method = "xgbTree",
   trControl = train_control,
-  tuneGrid = tune_grid,
+  tuneLength = n_models,  #  this replaces tuneGrid
   metric = "RMSE"  # Optimize based on RMSE
 )
 Sys.sleep(2)  # This is just an example to simulate a delay
@@ -188,6 +199,19 @@ print(rmse_by_bin)
 ```
 
 ```{r, eval=FALSE }
-saveRDS(here("associational XGBOOST", "trunc_damage_fit_reg.rds"))
+saveRDS(trunc_damage_fit_reg, here("associational XGBOOST", "trunc_damage_fit_reg.rds"))
+```
+
+```{r}
+# set.seed(1234)
+# tune_grid <- expand.grid(
+#    nrounds = c(200, 250, 275, 300, 350),
+#    max_depth = c(3, 6),
+#    eta = c(0.01, 0.05, 0.1, 0.2, 0.3),
+#    gamma = c(0, 1, 5, 10),
+#    colsample_bytree = c(0.5, 0.7, 0.8, 1.0),
+#    min_child_weight = c(1, 3, 5, 10),
+#    subsample = c(0.5, 0.7, 0.8, 1.0)
+#  )
 ```
 
