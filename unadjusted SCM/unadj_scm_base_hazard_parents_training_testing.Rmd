@@ -1,0 +1,113 @@
+---
+title: "Training Parent Nodes"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+# Working Environment: Clear working environment
+rm(list = ls())
+
+# Libraries: Load libraries
+library(rpart)
+library(here)
+library(rpart.plot)
+library(caret)
+```
+
+# Reusable functions
+```{r}
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+```
+
+# Inputs
+```{r}
+# inputs
+base_train <- read.csv(here("data", "base_train.csv"))
+base_validation <- read.csv(here("data", "base_validation.csv") )
+base_test <- read.csv(here("data", "base_validation.csv") )
+```
+
+```{r}
+# Combining train and validation datasets to one
+# Because we are going to use CV to train the models later
+# naming it df_base_train2 to remain consistent with df naming
+df_base_train2  <- rbind(base_train, base_validation)
+
+cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
+```
+
+# Wind Model Training & Testing
+## Decision trees
+```{r}
+# Basic training of wind model
+#  We do not account for regions like the adjusted model. 
+
+
+base_wind_model <- rpart(wind_max ~ track_min_dist,
+                       data = df_base_train2,
+                       method = "anova")
+
+```
+
+```{r}
+dec_wind_pred <- predict(base_wind_model, base_test)
+
+rmse_dec_wind_pred <- rmse(actual = df_base_train2$wind_max, 
+                           predicted = dec_wind_pred)
+
+cat("rmse of decision tree of wind model", rmse_dec_wind_pred, sep = " ")
+```
+
+
+```{r}
+rpart.plot(base_wind_model)
+```
+
+
+### Optimizing For Best parameters
+```{r}
+set.seed(123)
+# Define training control
+control <- trainControl(method = "cv", number = 5)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+)
+
+# Train model
+dec_base_wind_model_tuned <- train(
+  wind_max ~ track_min_dist, data = df_base_train2,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(dec_base_wind_model_tuned)
+plot(dec_base_wind_model_tuned)
+```
+
+```{r}
+rpart.plot(dec_base_wind_model_tuned$finalModel)
+```
+
+```{r}
+dec_wind_pred_tuned <- predict(dec_base_wind_model_tuned, base_test)
+
+rmse_dec_wind_pred_tuned <- rmse(actual = df_base_train2$wind_max, 
+                           predicted = dec_wind_pred_tuned)
+
+cat("rmse of tuned decision tree of wind model", rmse_dec_wind_pred_tuned, sep = " ")
+```
+
+
+## Output
+We output the caret tuned decision tree model
+```{r}
+full_path <- here("unadjusted SCM/new base models")
+saveRDS(dec_base_wind_model_tuned, 
+        file = file.path(full_path, paste0("dec_base_wind_model_tuned", ".rds")))
+```
