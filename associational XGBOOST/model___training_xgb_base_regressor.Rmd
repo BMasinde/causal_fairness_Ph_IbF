@@ -4,6 +4,10 @@ output: html_notebook
 ---
 
 ```{r}
+# Environment Cleaning: Clearing Workspace
+rm(list = ls())
+
+# Load packages
 library(rpart)
 library(dplyr)
 library(caret)
@@ -35,27 +39,30 @@ cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
 
 # Model training
 ```{r}
-# setting seed for reproducibility
+# Set up train control with custom seeds
+n_folds <- 7
+n_models <- 25  # adjust depending on search space size, affects seeds length
+
+
+# Reproducibility: Defining seeds (a little bit complicated because of parallel processing)
+
+#  Generate a reproducible list of seeds
 set.seed(1234)
 
-# Define tuning grid
-tune_grid <- expand.grid(
-  nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
-  max_depth = c(2, 3, 4, 6),
-  eta = c(0.09, 0.1, 0.11, 0.12),
-  gamma = c(0, 1, 2, 3, 4),
-  colsample_bytree = c(0.9, 1.0, 1.1),
-  min_child_weight = c(2, 3, 4),
-  subsample = c(0.5, 0.6, 0.7, 0.8)
-)
+seeds_list <- vector(mode = "list", length = n_folds + 1)
+for (i in 1:n_folds) {
+  seeds_list[[i]] <- sample.int(1000000, n_models)  # one seed per model per fold
+}
+seeds_list[[n_folds + 1]] <- sample.int(1000000, 1)  # for final model
 
 
 # Set up train control with 10-fold cross-validation
 train_control <- trainControl(
   method = "cv",
-  number = 7,
+  number = n_folds,
   summaryFunction = defaultSummary,
-  search = "random" # random selection of the expanded grid
+  search = "random", # random selection of the expanded grid
+  seeds = seeds_list, # Ensures reproducibility
 )
 
 # Detect and register the number of available cores (use all but one)
@@ -89,7 +96,7 @@ base_xgb_reg_model <- train(
   data = df_base_train2,
   method = "xgbTree",
   trControl = train_control,
-  tuneGrid = tune_grid,
+  tuneLength = n_models,
   metric = "RMSE"  # Optimize based on RMSE
 )
 Sys.sleep(2)  # This is just an example to simulate a delay
@@ -209,5 +216,22 @@ print(rmse_by_bin)
 # Output
 ```{r, eval=FALSE}
 saveRDS(damage_fit_reg_base, here("associational XGBOOST", "damage_fit_reg_base.rds"))
+```
+
+# OLD CODE
+```{r}
+# # setting seed for reproducibility
+# set.seed(1234)
+# 
+# # Define tuning grid
+# tune_grid <- expand.grid(
+#   nrounds = c(47,50, 60,70), # early stopping does not work, we still need to specify nrounds
+#   max_depth = c(2, 3, 4, 6),
+#   eta = c(0.09, 0.1, 0.11, 0.12),
+#   gamma = c(0, 1, 2, 3, 4),
+#   colsample_bytree = c(0.9, 1.0, 1.1),
+#   min_child_weight = c(2, 3, 4),
+#   subsample = c(0.5, 0.6, 0.7, 0.8)
+# )
 ```
 
