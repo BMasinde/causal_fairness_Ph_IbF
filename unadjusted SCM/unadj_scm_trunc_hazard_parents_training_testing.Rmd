@@ -100,3 +100,7 @@ full_path <- here("unadjusted SCM/new trunc models")
 saveRDS(trunc_wind_model_tuned, 
         file = file.path(full_path, paste0("trunc_wind_model_tuned", ".rds")))
 ```
+
+
+
+
