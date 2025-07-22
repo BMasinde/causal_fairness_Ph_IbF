@@ -1,0 +1,212 @@
+---
+title: 'Sanity Check Typhoon Melor: Adjusted Causal Model, Unadjusted Causal Model,
+  and associational model'
+output:
+  pdf_document: default
+  html_notebook: default
+---
+```{r, message=FALSE}
+# clear the working space
+rm(list = ls())
+
+library(here)
+library(stats) # need this to calculate Mahalanobis Distance
+library(parallel) # parallelize
+library(dplyr)
+library(FNN)
+library(cluster)
+library(ggplot2)
+library(rpart)
+library(caret)
+```
+
+
+# Inputs
+
+## Data and cleaning (inc data cleaning functions)
+```{r}
+base_data_regions <- read.csv(here("data", "base_data_regions.csv"))
+
+nrow(base_data_regions)
+```
+
+
+```{r}
+# renaming columns
+source(here("R", "col_rename.R"))
+base_data_regions  <- col_rename(base_data_regions)
+```
+
+```{r}
+source(here("R", "filter_by_tc.R"))
+typhoon_melor_2015 <- filter_by_tc(df = base_data_regions, tc = "melor2015")
+nrow(typhoon_melor_2015)
+```
+
+# Adjsuted Causal Model
+## Importing trained models
+```{r}
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
+
+adj_base_models_list <- list()
+
+# base models file path
+adj_base_file_path <- here("adjusted SCM/new base models")
+adj_base_wind_model <- readRDS(file.path(adj_base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
+
+
+adj_base_class_full_model <- readRDS(file.path(adj_base_file_path, 
+                                     "damage_fit_class_full.rds"))
+adj_base_reg_model <- readRDS(file.path(adj_base_file_path, 
+                                     "base_reg_model.rds"))
+
+adj_base_models_list <- list("base_wind_model" = adj_base_wind_model, 
+                         "base_class_full_model" = adj_base_class_full_model, 
+                         "base_reg_model" = adj_base_reg_model)
+```
+
+```{r}
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
+
+# empty list
+adj_trunc_models_list <- list()
+
+adj_trunc_file_path <- here("adjusted SCM/new trunc models")
+
+adj_trunc_wind_model <- readRDS(file.path(adj_trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+
+
+adj_trunc_reg_model <- readRDS(file.path(adj_trunc_file_path,
+                                      "trunc_reg_model.rds"))
+
+adj_trunc_models_list <- list("trunc_wind_model" = adj_trunc_wind_model,
+                          "trunc_reg_model" = adj_trunc_reg_model)
+```
+
+## Predictions
+```{r}
+# calling hurdle function
+source(here("R", "adj_hurdle_function.R"))
+
+
+adj_M15_preds  <- adj_hurdle_function(df = typhoon_melor_2015,
+                                               scm_models_base = adj_base_models_list,
+                                               scm_models_high = adj_trunc_models_list,
+                                               threshold = 0.3 # threshold in train/test models is 0.35
+                                               )
+```
+
+
+# Unadjsuted Causal Counterfactual predictions
+## Importing trained models
+
+```{r}
+
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
+
+unadj_base_models_list <- list()
+
+# base models file path
+unadj_base_file_path <- here("unadjusted SCM/new base models")
+unadj_base_wind_model <- readRDS(file.path(unadj_base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
+
+
+unadj_base_class_full_model <- readRDS(file.path(unadj_base_file_path, 
+                                     "damage_fit_class_full.rds"))
+unadj_base_reg_model <- readRDS(file.path(unadj_base_file_path, 
+                                     "base_reg_model.rds"))
+
+unadj_base_models_list <- list("base_wind_model" = unadj_base_wind_model, 
+                         "base_class_full_model" = unadj_base_class_full_model, 
+                         "base_reg_model" = unadj_base_reg_model)
+
+```
+
+```{r}
+
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
+
+# empty list
+unadj_trunc_models_list <- list()
+
+unadj_trunc_file_path <- here("unadjusted SCM/new trunc models")
+
+unadj_trunc_wind_model <- readRDS(file.path(unadj_trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+
+
+unadj_trunc_reg_model <- readRDS(file.path(unadj_trunc_file_path,
+                                      "trunc_damage_fit_reg.rds"))
+
+unadj_trunc_models_list <- list("trunc_wind_model" = unadj_trunc_wind_model,
+                          "trunc_reg_model" = unadj_trunc_reg_model)
+```
+
+
+```{r}
+names(unadj_trunc_models_list)
+```
+
+```{r}
+names(unadj_base_models_list)
+```
+
+
+```{r}
+# setting threshold for classification step
+threshold = 0.30
+
+source(here("R", "unadj_hurdle_function.R"))
+unadj_M15_preds  <- unadj_hurdle_function(df = typhoon_melor_2015,
+                                               scm_models_base = unadj_base_models_list,
+                                               scm_models_high = unadj_trunc_models_list,
+                                               threshold = threshold # threshold in train/test models is 0.35
+                                               )
+
+
+```
+
+# Associational Model Counterfactuals
+
+## Importing trained models
+```{r}
+# Read the .rds models
+base_reg <- readRDS(here("associational XGBOOST", "damage_fit_reg_base.rds"))
+trunc_reg <- readRDS(here("associational XGBOOST", "trunc_damage_fit_reg.rds"))
+clas_model  <- readRDS(here("associational XGBOOST", "ass_XGBOOST_class.rds"))
+```
+
+## Counterfactual predictions
+```{r}
+source(here("R", "ass_hurdle_function.R"))
+
+# setting threshold for classification step
+threshold = 0.30
+
+ass_M15_preds <- ass_hurdle_function(df = typhoon_melor_2015, ass_clas_model = clas_model,
+  ass_base_model = base_reg, ass_trunc_model = trunc_reg ,threshold = threshold)
+```
+
+
+# Output
+```{r}
+# output dataframe with counterfactual predictions
+
+melor_2015_preds  <-  typhoon_melor_2015 %>%
+  mutate(adj_M15_preds = adj_M15_preds,
+         unadj_M15_preds = unadj_M15_preds,
+         ass_M15_preds = ass_M15_preds) 
+
+# write to file
+write.csv(melor_2015_preds, here("hurdle comparisons", "melor_2015_preds.csv"))
+```
+
+
+
