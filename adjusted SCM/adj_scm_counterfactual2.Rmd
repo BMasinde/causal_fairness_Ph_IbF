@@ -1,0 +1,140 @@
+---
+title: "Counterfactual Adjusted Causal Model"
+author: "Brain K. Masinde"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+```{r, message=FALSE}
+# clear the working space
+rm(list = ls())
+
+library(here)
+library(stats) # need this to calculate Mahalanobis Distance
+library(parallel) # parallelize
+library(dplyr)
+library(FNN)
+library(cluster)
+library(ggplot2)
+library(rpart)
+library(caret)
+```
+
+
+# Counterfactual Data Input
+```{r}
+# we need the renaming function for cleaning
+melor_2015 <- read.csv(here("data", "clustered_M15_CF_data2.csv"))
+```
+
+# Counterfactual predictions
+
+## Importing trained models
+```{r}
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
+
+base_models_list <- list()
+
+# base models file path
+base_file_path <- here("adjusted SCM/new base models")
+base_wind_model <- readRDS(file.path(base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
+
+
+base_class_full_model <- readRDS(file.path(base_file_path, 
+                                     "damage_fit_class_full.rds"))
+base_reg_model <- readRDS(file.path(base_file_path, 
+                                     "base_reg_model.rds"))
+
+base_models_list <- list("base_wind_model" = base_wind_model, 
+                         "base_class_full_model" = base_class_full_model, 
+                         "base_reg_model" = base_reg_model)
+```
+
+```{r}
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
+
+# empty list
+trunc_models_list <- list()
+
+trunc_file_path <- here("adjusted SCM/new trunc models")
+
+trunc_wind_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+
+
+trunc_reg_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_reg_model.rds"))
+
+trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                          "trunc_reg_model" = trunc_reg_model)
+```
+
+
+```{r}
+# calling hurdle function
+source(here("R", "adj_hurdle_function.R"))
+
+
+adj_counterfactual_hurdle_preds  <- adj_hurdle_function(df = melor_2015,
+                                               scm_models_base = base_models_list,
+                                               scm_models_high = trunc_models_list,
+                                               threshold = 0.3 # threshold in train/test models is 0.35
+                                               )
+```
+
+```{r}
+# append the results to the counterfactual dataset
+melor_2015  <- melor_2015 %>%
+    mutate(damage_preds = adj_counterfactual_hurdle_preds)
+```
+
+# Counteractual Results
+```{r}
+
+# convert the Cluster column to factor
+melor_2015$Cluster <- as.factor(melor_2015$Cluster)
+
+# extract cluster_levels
+cluster_levels <- levels(melor_2015$Cluster)
+
+# Source function: counterfactual_results 
+source(here("R", "counterfactual_results.R"))
+
+
+cf_results <- counterfactual_results(cf_data = melor_2015, 
+                                     cluster_levels = cluster_levels) 
+
+
+```
+
+
+```{r}
+# Check the list to confirm plots are stored
+print(cf_results$plots)
+```
+
+```{r}
+print(cf_results$median)
+```
+
+```{r}
+print(cf_results$averages)
+```
+
+
+# Output the counterfactual predictions
+Saving the counterfactual predictions for mapping differences  between this 
+adjusted causal model and the associational XGBOOST model in QGIS.
+```{r}
+CF_output <- melor_2015 %>%
+  select(Mun_Code, Municipality, Cluster, damage_preds) %>%
+  rename(adj_scm_CF_M15 = damage_preds)
+  
+write.csv2(CF_output, file = here("adjusted SCM/outputs", "scm_CF_M15.csv"))
+```
