@@ -1,21 +1,31 @@
 ---
 title: "Clustering Municipalities (For Counterfactual Testing)"
-output: html_notebook
-author: Brian K. Masinde
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
+# Environment:
+
+#   Cleaning working environment 
 rm(list = ls())
+
+#   Loading libraries
 library(here)
 library(cluster)
 library(tibble)
 library(purrr)
+library(dplyr)
 ```
 
 
 ```{r}
 # read melor 
 melor15_CF_data <- read.csv(here("data", "melor15_CF_data.csv"))
+
+nrow(melor15_CF_data)
 ```
 
 
@@ -52,9 +62,6 @@ match_vars  <- c('roof_strong_wall_strong',
                    )
 
 # Normalize the variables using z-score
-#mun_scaled <- mun_properties %>%
-#  mutate(across(c(blue_ss_frac:roof_salv_wall_salv), scale))
-
 mun_scaled <- mun_properties %>%
   mutate(across(all_of(match_vars), scale))
 
@@ -71,13 +78,13 @@ group3_data <- group3 %>% select(-Mun_Code, -island_groups)
 
 
 all_data <- bind_rows(
-  group1 %>% mutate(region = "Luzon"),
-  group2 %>% mutate(region = "Visayas"),
-  group3 %>% mutate(region = "Mindanao")
+  group1 %>% mutate(island_region = "Luzon"),
+  group2 %>% mutate(island_region = "Visayas"),
+  group3 %>% mutate(island_region = "Mindanao")
 )
 
 # Remove non-numeric columns except for Mun_Code and region
-all_numeric <- all_data %>% select(-Mun_Code, -island_groups, -region)
+all_numeric <- all_data %>% select(-Mun_Code, -island_groups, -island_region)
 
 # Perform clustering
 set.seed(123)  # For reproducibility
@@ -91,77 +98,182 @@ all_data$Cluster <- clusters$cluster
 cluster_summary <- all_data %>%
   group_by(Cluster) %>%
   summarise(
-    Luzon = list(Mun_Code[region == "Luzon"]),
-    Visayas = list(Mun_Code[region == "Visayas"]),
-    Mindanao = list(Mun_Code[region == "Mindanao"])
+    Luzon = list(Mun_Code[island_region == "Luzon"]),
+    Visayas = list(Mun_Code[island_region == "Visayas"]),
+    Mindanao = list(Mun_Code[island_region == "Mindanao"])
   )
 
-# Convert tibble into a nested list containing municipality codes
-nested_list <- cluster_summary %>%
-  mutate(Cluster = as.character(Cluster)) %>%  # Convert Cluster to character for list keys
-  split(.$Cluster) %>%
-  lapply(function(row) {
-    list(
-      Luzon = row$Luzon[[1]],
-      Visayas = row$Visayas[[1]],
-      Mindanao = row$Mindanao[[1]]
-    )
-  })
+
 
 # Print outputs
 print(cluster_summary)  # Summarized tibble with Mun_Code
-print(nested_list)  # Nested list with Mun
 ```
 
+NOTE: Cluster 3 is an outlier with only 1 observation for Luzon and Visayas and 
+0 for Mindanao.
+
 ```{r}
-# some 2nd level lists have no entries
-# cleaning up
-clean_list <- function(lst) {
-  # Recursively clean second-level entries
-  lst <- lapply(lst, function(sublist) {
-    if (is.list(sublist)) {
-      sublist <- clean_list(sublist)  # Recursively clean sublists
-      if (length(sublist) == 0) return(NULL)  # Remove empty sublists
-    } else if (length(sublist) == 0) {
-      return(NULL)  # Remove empty atomic vectors
-    }
-    return(sublist)
-  })
+# Clean up:
+#   Removing the outlier cluster 3
+#   Get the row id of the cluster 3 observations
+cluster3_id <- which(all_data$Cluster==3)
+all_data <- all_data[-cluster3_id, ]
 
-  # Remove NULL entries from first-level list
-  lst <- lst[!sapply(lst, is.null)]
 
-  # Remove first-level entries that have 0 or only 1 non-empty sublist
-  lst <- lst[sapply(lst, function(sublist) length(sublist) > 1)]
-
-  # If the entire list is empty, return NULL
-  if (length(lst) == 0) return(NULL)
-
-  return(lst)
-}
-
-cleaned_list <- clean_list(nested_list)
-
-print(cleaned_list)
+#   change column Cluster from numerical to charactor/factor
+all_data  <- all_data  %>%
+  mutate(Cluster = as.character(Cluster)) %>%
+  mutate(Cluster = as.factor(Cluster))
+  
 ```
 
 
 ```{r}
-# Assuming your nested list is called `cleaned_list`
-summary_tbl <- tibble(
-  Cluster = seq_along(cleaned_list),
-  Luzon = map(cleaned_list, ~ .x$Luzon),
-  Visayas = map(cleaned_list, ~ .x$Visayas),
-  Mindanao = map(cleaned_list, ~ .x$Mindanao)
-)
+# Join: inner join counterfactual dataset with cluster dataset
+#   Counterfactual dataset = melor15_CF_data
+#   Cluster dataset = all_data
+#   Join by Mun_code
 
-summary_tbl
+melor15_CF_data <- melor15_CF_data %>%
+  inner_join(all_data %>% select(Mun_Code, Cluster), by = "Mun_Code")
+```
+
+
+```{r}
+# Column clean up and create new 
+
+# columns to remove:
+cols_to_remove <- c("X", 
+                    "rain_max6h",
+                    "rain_max24h",
+                    "ls_risk_pct",
+                    "ss_risk_pct",
+                    "slope_mean",
+                    "elev_mean",
+                    "ruggedness_sd",
+                    "ruggedness_mean",
+                    "slope_sd",
+                    "poverty_pct",
+                    "has_coast",
+                    "coast_length",
+                    "housing_units",
+                    "vulnerable_groups",
+                    "pantawid_benef",
+                    "damage_perc",
+                    "Mun_Code_2",
+                    "Unnamed..0", 
+                    "X10.Digit.Code",
+                    "Correspondence.Code",
+                    "Income.Class",
+                    "Population.2020.Census." )
+
+clustered_M15_CF_data <- melor15_CF_data %>%
+  select(-all_of(cols_to_remove))
+  
+```
+
+
+```{r}
+# Create a tibble summarizing cluster sizes and municipality codes
+cluster_summary <- clustered_M15_CF_data %>%
+  group_by(Cluster) %>%
+  summarise(
+    Luzon = list(Mun_Code[island_groups == "Luzon"]),
+    Visayas = list(Mun_Code[island_groups == "Visayas"]),
+    Mindanao = list(Mun_Code[island_groups == "Mindanao"])
+  )
+
+
+
+# Print outputs
+print(cluster_summary)  # Summarized tibble with Mun_Code
 ```
 
 # Output
 ```{r}
-# save the clusters
-mun_clusters <- cleaned_list
-save(mun_clusters, file = here("data", "clusters.RData"))
+# Output:
+#   Save the clustered counterfactual dataset
+
+write.csv(clustered_M15_CF_data, file = here("data", "clustered_M15_CF_data.csv"))
+```
+
+
+# OLD CODE
+```{r, eval=FALSE, echo=FALSE}
+# # Convert tibble into a nested list containing municipality codes
+# nested_list <- cluster_summary %>%
+#   mutate(Cluster = as.character(Cluster)) %>%  # Convert Cluster to character for list keys
+#   split(.$Cluster) %>%
+#   lapply(function(row) {
+#     list(
+#       Luzon = row$Luzon[[1]],
+#       Visayas = row$Visayas[[1]],
+#       Mindanao = row$Mindanao[[1]]
+#     )
+#   })
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# # some 2nd level lists have no entries
+# # cleaning up
+# clean_list <- function(lst) {
+#   # Recursively clean second-level entries
+#   lst <- lapply(lst, function(sublist) {
+#     if (is.list(sublist)) {
+#       sublist <- clean_list(sublist)  # Recursively clean sublists
+#       if (length(sublist) == 0) return(NULL)  # Remove empty sublists
+#     } else if (length(sublist) == 0) {
+#       return(NULL)  # Remove empty atomic vectors
+#     }
+#     return(sublist)
+#   })
+# 
+#   # Remove NULL entries from first-level list
+#   lst <- lst[!sapply(lst, is.null)]
+# 
+#   # Remove first-level entries that have 0 or only 1 non-empty sublist
+#   lst <- lst[sapply(lst, function(sublist) length(sublist) > 1)]
+# 
+#   # If the entire list is empty, return NULL
+#   if (length(lst) == 0) return(NULL)
+# 
+#   return(lst)
+# }
+# 
+# cleaned_list <- clean_list(nested_list)
+# 
+# print(cleaned_list)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# # some 2nd level lists have no entries
+# # cleaning up
+# clean_list <- function(lst) {
+#   # Recursively clean second-level entries
+#   lst <- lapply(lst, function(sublist) {
+#     if (is.list(sublist)) {
+#       sublist <- clean_list(sublist)  # Recursively clean sublists
+#       if (length(sublist) == 0) return(NULL)  # Remove empty sublists
+#     } else if (length(sublist) == 0) {
+#       return(NULL)  # Remove empty atomic vectors
+#     }
+#     return(sublist)
+#   })
+# 
+#   # Remove NULL entries from first-level list
+#   lst <- lst[!sapply(lst, is.null)]
+# 
+#   # Remove first-level entries that have 0 or only 1 non-empty sublist
+#   lst <- lst[sapply(lst, function(sublist) length(sublist) > 1)]
+# 
+#   # If the entire list is empty, return NULL
+#   if (length(lst) == 0) return(NULL)
+# 
+#   return(lst)
+# }
+# 
+# cleaned_list <- clean_list(nested_list)
+# 
+# print(cleaned_list)
 ```
 
