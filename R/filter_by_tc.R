@@ -86,7 +86,7 @@ filter_by_tc  <- function(df, tc){
            -Income.Class,
            -Population.2020.Census.,
            -poverty_pct,
-           -damage_perc
+           #-damage_perc
     )
   
   # df should have all the 1478 municipalities
