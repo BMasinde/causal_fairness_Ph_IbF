@@ -25,13 +25,10 @@ library(caret)
 # Counterfactual Data Input
 ```{r}
 # we need the renaming function for cleaning
-melor_2015 <- read.csv(here("data", "melor15_CF_data.csv"))
+melor_2015 <- read.csv(here("data", "clustered_M15_CF_data.csv"))
 ```
 
-```{r}
-# this is going to load mun_clusters which is the list with the clusters
-load(here("data", "clusters.RData"))
-```
+
 
 # Counterfactual
 
@@ -60,63 +57,40 @@ melor_2015  <- melor_2015 %>%
     mutate(damage_preds = preds)
 ```
 
-## Counterfactual clusters
+## Counterfactual results
 
 ```{r}
-plots_list  <- list()
-means_list  <- list()
-median_list  <- list()
 
-for (i in seq_along(mun_clusters)) {
-  # Get the current entry
-  current_entry <- mun_clusters[[i]]
+# convert the Cluster column to factor
+melor_2015$Cluster <- as.factor(melor_2015$Cluster)
 
-  # Convert the nested list entry to a data frame format
-  plot_data <- bind_rows(lapply(names(current_entry), function(region) {
-    data.frame(Mun_Code = unlist(current_entry[[region]]), island_regions = region, stringsAsFactors = FALSE)
-  }))
+# extract cluster_levels
+cluster_levels <- levels(melor_2015$Cluster)
 
-  # Merge with original data to get predicted damage
-  merged_data <- melor_2015 %>%
-    inner_join(plot_data, by = "Mun_Code")
+# Source function: counterfactual_results 
+source(here("R", "counterfactual_results.R"))
 
-  # Create boxplot
-  p <- ggplot(merged_data, aes(x = island_groups, y = damage_preds, fill = island_groups)) +
-    geom_boxplot() +
-    labs(title = paste("Predicted Damage Distribution - List Entry", i),
-         x = "Island Region",
-         y = "Predicted Damage") +
-    theme_minimal()
 
- # Save the plot in the list
-  plots_list[[i]] <- p
+cf_results <- counterfactual_results(cf_data = melor_2015, 
+                                     cluster_levels = cluster_levels) 
 
-  # Calculate the mean of damage_preds for each island_groups
-  mean_values <- merged_data %>%
-    group_by(island_groups) %>%
-    summarise(mean_damage = mean(damage_preds, na.rm = TRUE))
 
-  # Save the means in the list
-  means_list[[i]] <- mean_values
+```
 
- # Calculate median of the damage_preds for each island groups
-  median_values  <- merged_data %>%
-    group_by(island_groups) %>%
-    summarise(median_damage = median(damage_preds, na.rm = TRUE))
 
-  # save the medians in the list
-   median_list[[i]]  <- median_values
-
-}
-
+```{r}
 # Check the list to confirm plots are stored
-print(plots_list)
+print(cf_results$plots)
 ```
-
 
 ```{r}
-print(median_list)
+print(cf_results$median)
 ```
+
+```{r}
+print(cf_results$averages)
+```
+
 
 # Output the counterfactual predictions
 Saving the counterfactual predictions for mapping differences  between this 
@@ -131,4 +105,61 @@ CF_output <- melor_2015 %>%
   
 write.csv2(CF_output, file = here("associational XGBOOST", "ass_CF_M15.csv"))
 ```
+
+# OLD CODE
+
+```{r, eval=FALSE, echo=FALSE}
+# plots_list  <- list()
+# means_list  <- list()
+# median_list  <- list()
+# 
+# for (i in seq_along(mun_clusters)) {
+#   # Get the current entry
+#   current_entry <- mun_clusters[[i]]
+# 
+#   # Convert the nested list entry to a data frame format
+#   plot_data <- bind_rows(lapply(names(current_entry), function(region) {
+#     data.frame(Mun_Code = unlist(current_entry[[region]]), island_regions = region, stringsAsFactors = FALSE)
+#   }))
+# 
+#   # Merge with original data to get predicted damage
+#   merged_data <- melor_2015 %>%
+#     inner_join(plot_data, by = "Mun_Code")
+# 
+#   # Create boxplot
+#   p <- ggplot(merged_data, aes(x = island_groups, y = damage_preds, fill = island_groups)) +
+#     geom_boxplot() +
+#     labs(title = paste("Predicted Damage Distribution - List Entry", i),
+#          x = "Island Region",
+#          y = "Predicted Damage") +
+#     theme_minimal()
+# 
+#  # Save the plot in the list
+#   plots_list[[i]] <- p
+# 
+#   # Calculate the mean of damage_preds for each island_groups
+#   mean_values <- merged_data %>%
+#     group_by(island_groups) %>%
+#     summarise(mean_damage = mean(damage_preds, na.rm = TRUE))
+# 
+#   # Save the means in the list
+#   means_list[[i]] <- mean_values
+# 
+#  # Calculate median of the damage_preds for each island groups
+#   median_values  <- merged_data %>%
+#     group_by(island_groups) %>%
+#     summarise(median_damage = median(damage_preds, na.rm = TRUE))
+# 
+#   # save the medians in the list
+#    median_list[[i]]  <- median_values
+# 
+# }
+# 
+# # Check the list to confirm plots are stored
+# print(plots_list)
+```
+
+
+
+
 
