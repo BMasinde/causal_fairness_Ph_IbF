@@ -1,10 +1,12 @@
 ---
-title: "Training and Testing Hazard Parent Nodes: Wind and Rain"
-output: html_notebook
+title: 'Training and Testing Hazard Parent Nodes: Wind and Rain'
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
-# clear working environment
+```{r, message=FALSE}
+# Environment: Clear working environment
 rm(list = ls())
 
 # load libraries
@@ -12,6 +14,7 @@ library(rpart)
 library(here)
 library(rpart.plot)
 library(caret)
+library(ggplot2)
 ```
 
 # Reusable functions
@@ -87,8 +90,15 @@ plot(dec_base_wind_model_tuned)
 ```
 
 ```{r}
-rpart.plot(dec_base_wind_model_tuned$finalModel)
+png(here("adjusted SCM/outputs", "dec_wind_base_model.png"), 
+       width = 6, 
+       units = "in",
+       height = 4,
+    res = 300)
+dec_base_wind_plot <- rpart.plot(dec_base_wind_model_tuned$finalModel)
+dev.off()
 ```
+
 
 
 ```{r}
@@ -150,7 +160,7 @@ control <- trainControl(method = "cv", number = 5)
 
 # Set tuning grid
 grid <- expand.grid(
-  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
+  cp = seq(0.001, 0.07, by = 0.005)  # try several cp values
 )
 
 # Train model
@@ -166,14 +176,20 @@ plot(dec_base_rain_model_tuned)
 ```
 
 ```{r}
+png(here("adjusted SCM/outputs", "dec_rain_base_model.png"), 
+       width = 6, 
+       units = "in",
+       height = 4,
+    res = 300)
 rpart.plot(dec_base_rain_model_tuned$finalModel)
+dev.off()
 ```
 
 ```{r}
 dec_rain_pred_tuned <- predict(dec_base_rain_model_tuned, base_test)
 
 rmse_dec_rain_pred_tuned <- rmse(actual = df_base_train2$rain_total, 
-                           predicted = dec_wind_pred_tuned)
+                           predicted = dec_rain_pred_tuned)
 
 cat("rmse of tuned decision tree of rain model", rmse_dec_rain_pred_tuned, sep = " ")
 ```
