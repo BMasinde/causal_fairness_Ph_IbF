@@ -1,7 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
-author: Brian K. Masinde
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ```{r}
@@ -47,86 +49,17 @@ base_wind_model <- readRDS(here("adjusted SCM/new base models",
 ```
 
 
-```{r}
-# Training structural equation for wind speed
-
-#base_wind_model <- rpart(wind_max ~ track_min_dist + island_groups,
-#                       data = df_base_train2,
-#                       method = "anova")
-```
 
 ```{r}
 # Training structural equation for rain speed
-# rain_total = f(track_min_dist, eps)
+# rain_total = f(track_min_dist + d, eps)
 
-#base_rain_model <- rpart(rain_total ~ track_min_dist + island_groups,
-#                       data = df_base_train2,
-#                       method = "anova")
-
-```
-
-
-```{r}
-# Building typologies are determined by region
-# base_roof_strong_wall_strong_model  <- rpart(roof_strong_wall_strong  ~ island_groups,
-#                                              data = df_base_train2,
-#                                             method = "anova")
-# 
-# base_roof_strong_wall_light_model  <- rpart(roof_strong_wall_light ~ island_groups,
-#                                            data = df_base_train2,
-#                                            method = "anova")
-# 
-# base_roof_strong_wall_salv_model  <- rpart(roof_strong_wall_salv ~ island_groups,
-#                                           data = df_base_train2,
-#                                           method = "anova")
-# base_roof_light_wall_strong_model  <- rpart(roof_light_wall_strong ~ island_groups,
-#                                            data = df_base_train2,
-#                                            method = "anova")
-# base_roof_light_wall_light_model  <- rpart(roof_light_wall_light ~ island_groups,
-#                                           data = df_base_train2,
-#                                           method = "anova")
-# base_roof_light_wall_salv_model  <- rpart(roof_light_wall_salv ~ island_groups,
-#                                          data = df_base_train2,
-#                                          method = "anova")
-# 
-# base_roof_salv_wall_strong_model  <- rpart(roof_salv_wall_strong ~ island_groups,
-#                                           data = df_base_train2,
-#                                           method = "anova")
-# 
-# base_roof_salv_wall_light_model  <- rpart(roof_salv_wall_light ~ island_groups,
-#                                   data = df_base_train2,
-#                                   method = "anova")
-# 
-# base_roof_salv_wall_salv_model  <- rpart(roof_salv_wall_salv ~ island_groups,
-#                                   data = df_base_train2,
-#                                   method = "anova")
-```
-
-```{r}
-# model_list <- list(
-#   wind_max = base_wind_model,
-#   rain_total = base_rain_model,
-#   roof_strong_wall_strong = base_roof_strong_wall_strong_model,
-#   roof_strong_wall_light = base_roof_strong_wall_light_model,
-#   roof_strong_wall_salv = base_roof_strong_wall_salv_model,
-#   roof_light_wall_strong = base_roof_light_wall_strong_model,
-#   roof_light_wall_light = base_roof_light_wall_light_model,
-#   roof_light_wall_salv = base_roof_light_wall_salv_model,
-#   roof_salv_wall_strong = base_roof_salv_wall_strong_model,
-#   roof_salv_wall_light = base_roof_salv_wall_light_model,
-#   roof_salv_wall_salv = base_roof_salv_wall_salv_model
-# )
+base_rain_model <- readRDS(here("adjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
 
 ```
 
 
-```{r}
-# Apply predictions efficiently
-# for (model_name in names(model_list)) {
-#   pred_col_name <- paste0(model_name, "_pred")
-#   df_base_train2[[pred_col_name]] <- predict(model_list[[model_name]], newdata = df_base_train2)
-# }
-```
 
 
 ```{r}
@@ -141,7 +74,7 @@ rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_
 # To get variable: wind_max_pred
 
 df_base_train2[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
-
+df_base_train2[["rain_total_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
 
 # Multiply wind fractions by wind_max_pred
 for (col in wind_fractions) {
@@ -153,7 +86,7 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["rain_total"]]
+  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["rain_total_pred"]]
 }
 ```
 
@@ -217,7 +150,7 @@ system.time({
     xgb_model <- train(
       damage_binary_2 ~ track_min_dist +
         wind_max_pred +
-        rain_total +
+        rain_total_pred +
         roof_strong_wall_strong +
         roof_strong_wall_light +
         roof_strong_wall_salv +
@@ -268,7 +201,7 @@ best_params_model <- xgb_model$bestTune
 damage_fit_class_full <- train(
           damage_binary_2 ~ track_min_dist +
             wind_max_pred +
-            rain_total +
+            rain_total_pred +
             roof_strong_wall_strong +
             roof_strong_wall_light +
             roof_strong_wall_salv +
@@ -393,7 +326,7 @@ saveRDS(damage_fit_class_full, file = file.path(full_path, paste0("damage_fit_cl
 ```
 
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 # OLD CODE: HOW TO SAVE MULTIPLE MODELS
 # ------------ Models in a list -----------------------
 # models <- list(damage_fit_class_full,
@@ -431,5 +364,66 @@ saveRDS(damage_fit_class_full, file = file.path(full_path, paste0("damage_fit_cl
 
 ```
 
+```{r, echo=FALSE, eval=FALSE}
+# Building typologies are determined by region
+# base_roof_strong_wall_strong_model  <- rpart(roof_strong_wall_strong  ~ island_groups,
+#                                              data = df_base_train2,
+#                                             method = "anova")
+# 
+# base_roof_strong_wall_light_model  <- rpart(roof_strong_wall_light ~ island_groups,
+#                                            data = df_base_train2,
+#                                            method = "anova")
+# 
+# base_roof_strong_wall_salv_model  <- rpart(roof_strong_wall_salv ~ island_groups,
+#                                           data = df_base_train2,
+#                                           method = "anova")
+# base_roof_light_wall_strong_model  <- rpart(roof_light_wall_strong ~ island_groups,
+#                                            data = df_base_train2,
+#                                            method = "anova")
+# base_roof_light_wall_light_model  <- rpart(roof_light_wall_light ~ island_groups,
+#                                           data = df_base_train2,
+#                                           method = "anova")
+# base_roof_light_wall_salv_model  <- rpart(roof_light_wall_salv ~ island_groups,
+#                                          data = df_base_train2,
+#                                          method = "anova")
+# 
+# base_roof_salv_wall_strong_model  <- rpart(roof_salv_wall_strong ~ island_groups,
+#                                           data = df_base_train2,
+#                                           method = "anova")
+# 
+# base_roof_salv_wall_light_model  <- rpart(roof_salv_wall_light ~ island_groups,
+#                                   data = df_base_train2,
+#                                   method = "anova")
+# 
+# base_roof_salv_wall_salv_model  <- rpart(roof_salv_wall_salv ~ island_groups,
+#                                   data = df_base_train2,
+#                                   method = "anova")
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# model_list <- list(
+#   wind_max = base_wind_model,
+#   rain_total = base_rain_model,
+#   roof_strong_wall_strong = base_roof_strong_wall_strong_model,
+#   roof_strong_wall_light = base_roof_strong_wall_light_model,
+#   roof_strong_wall_salv = base_roof_strong_wall_salv_model,
+#   roof_light_wall_strong = base_roof_light_wall_strong_model,
+#   roof_light_wall_light = base_roof_light_wall_light_model,
+#   roof_light_wall_salv = base_roof_light_wall_salv_model,
+#   roof_salv_wall_strong = base_roof_salv_wall_strong_model,
+#   roof_salv_wall_light = base_roof_salv_wall_light_model,
+#   roof_salv_wall_salv = base_roof_salv_wall_salv_model
+# )
+
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+# Apply predictions efficiently
+# for (model_name in names(model_list)) {
+#   pred_col_name <- paste0(model_name, "_pred")
+#   df_base_train2[[pred_col_name]] <- predict(model_list[[model_name]], newdata = df_base_train2)
+# }
+```
 
 
