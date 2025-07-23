@@ -43,7 +43,8 @@ base_models_list <- list()
 base_file_path <- here("adjusted SCM/new base models")
 base_wind_model <- readRDS(file.path(base_file_path, 
                                      "dec_base_wind_model_tuned.rds"))
-
+base_rain_model <- readRDS(here("adjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
 
 base_class_full_model <- readRDS(file.path(base_file_path, 
                                      "damage_fit_class_full.rds"))
@@ -51,6 +52,7 @@ base_reg_model <- readRDS(file.path(base_file_path,
                                      "base_reg_model.rds"))
 
 base_models_list <- list("base_wind_model" = base_wind_model, 
+                         "base_rain_model" = base_rain_model,
                          "base_class_full_model" = base_class_full_model, 
                          "base_reg_model" = base_reg_model)
 ```
@@ -66,12 +68,14 @@ trunc_file_path <- here("adjusted SCM/new trunc models")
 
 trunc_wind_model <- readRDS(file.path(trunc_file_path,
                                       "trunc_wind_model_tuned.rds"))
-
+trunc_rain_model <- readRDS(here("adjusted SCM/new trunc models", 
+                                "dec_trunc_rain_model_tuned.rds"))
 
 trunc_reg_model <- readRDS(file.path(trunc_file_path,
                                       "trunc_reg_model.rds"))
 
 trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                           "trunc_rain_model" = trunc_rain_model,
                           "trunc_reg_model" = trunc_reg_model)
 ```
 
