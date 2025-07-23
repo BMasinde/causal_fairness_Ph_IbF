@@ -1,10 +1,12 @@
 ---
-title: "Truncated model: Training and Testing Hazard Parent Nodes: Wind and Rain"
-output: html_notebook
+title: 'Truncated model: Training and Testing Hazard Parent Nodes: Wind and Rain'
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ```{r}
-# clear working environment
+# Environment: Clear working environment
 rm(list = ls())
 
 # load libraries
@@ -78,7 +80,13 @@ plot(trunc_wind_model_tuned)
 ```
 
 ```{r}
+png(here("adjusted SCM/outputs", "dec_wind_trunc_model.png"), 
+       width = 6, 
+       units = "in",
+       height = 4,
+    res = 300)
 rpart.plot(trunc_wind_model_tuned$finalModel)
+dev.off()
 ```
 
 
@@ -102,42 +110,53 @@ saveRDS(trunc_wind_model_tuned,
 
 
 # Rain Model Training & Testing
-```{r, echo=FALSE, eval=FALSE}
-# trunc_rain_model <- rpart(rain_total ~ track_min_dist + island_groups,
-#                       data = trunc_train,
-#                       method = "anova")
+```{r, echo=FALSE, eval=TRUE}
+trunc_rain_model <- rpart(rain_total ~ track_min_dist + island_groups,
+                     data = trunc_train,
+                      method = "anova")
 ```
 
 ```{r}
-#rpart.plot(trunc_rain_model)
+rpart.plot(trunc_rain_model)
 ```
 
 ```{r, eval=FALSE, echo=FALSE}
-# rain_pred <- predict(trunc_rain_model, trunc_test)
-# 
-# rmse_rain_pred <- rmse(actual = trunc_test$rain_total, 
-#                            predicted = rain_pred)
-# 
-# cat("rmse of decision tree of rain model", rmse_rain_pred, sep = " ")
+rain_pred <- predict(trunc_rain_model, trunc_test)
+
+rmse_rain_pred <- rmse(actual = trunc_test$rain_total,
+                           predicted = rain_pred)
+
+cat("rmse of decision tree of rain model", rmse_rain_pred, sep = " ")
+
+
 ```
 
+```{r}
+full_path <- here("adjusted SCM/new trunc models")
+saveRDS(trunc_rain_model,
+        file = file.path(full_path, paste0("dec_trunc_rain_model_tuned", ".rds")))
+```
+
+
+
 ### Optimizing For Best parameters
+THIS DID NOT WORK OUT WELL!
 ```{r, echo=FALSE, eval=FALSE}
 # set.seed(123)
 # # Define training control
 # control <- trainControl(method = "cv", number = 5)
 # 
 # # Set tuning grid
-# #grid <- expand.grid(
-# #  cp = seq(0.001, 0.05, by = 0.005)  # try several cp values
-# #)
+# grid <- expand.grid(
+#  cp = seq(0.001, 0.07, by = 0.005)  # try several cp values
+# )
 # 
-# grid <- expand.grid(maxdepth = 5:30)
+# 
 # 
 # # Train model
 # trunc_rain_model_tuned <- train(
 #   rain_total ~ track_min_dist + island_groups, data = trunc_train,
-#   method = "rpart2",
+#   method = "rpart",
 #   trControl = control,
 #   tuneGrid = grid
 # )
@@ -147,7 +166,7 @@ saveRDS(trunc_wind_model_tuned,
 ```
 
 ```{r}
-# rpart.plot(trunc_rain_model_tuned$finalModel)
+ #rpart.plot(trunc_rain_model_tuned$finalModel)
 ```
 
 
@@ -162,7 +181,7 @@ saveRDS(trunc_wind_model_tuned,
 
 
 # Saving Tuned Rain_Total Decision Tree Model
-```{r, echo=FALSE, eval=FALE}
+```{r, echo=FALSE, eval=FALSE}
 # full_path <- here("adjusted SCM/new base models")
 # saveRDS(dec_base_rain_model_tuned, 
 #         file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
