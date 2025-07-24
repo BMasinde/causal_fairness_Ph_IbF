@@ -56,7 +56,7 @@ rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_
 #   model to use: base_wind_model
 
 df_base_test[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_test)
-df_base_test[["rain_total_pred"]] <- predict(base_wind_model, newdata = df_base_test)
+df_base_test[["rain_total_pred"]] <- predict(base_rain_model, newdata = df_base_test)
 
 # Compute wind interaction terms dynamically
 for (col in wind_fractions) {
