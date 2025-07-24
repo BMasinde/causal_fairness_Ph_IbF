@@ -247,7 +247,7 @@ mlflow_log_metric("Recall", recall)
 mlflow_end_run()
 
 ```
-
+# Model Testing: Testing on out of sample test data.
 ```{r}
 # Testing on test dataset ----------------------------------------------------------------------------------------
 base_test$damage_binary_2 <- factor(base_test$damage_binary,
