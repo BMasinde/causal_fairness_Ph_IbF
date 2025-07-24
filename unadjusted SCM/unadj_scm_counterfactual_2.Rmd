@@ -1,0 +1,195 @@
+---
+title: "Counterfactual Unadjusted Causal Model"
+author: "Brain K. Masine"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+```{r, message=FALSE}
+# clear the working space
+rm(list = ls())
+
+library(here)
+library(stats) # need this to calculate Mahalanobis Distance
+library(parallel) # parallelize
+library(dplyr)
+library(FNN)
+library(cluster)
+library(ggplot2)
+library(rpart)
+library(caret)
+```
+
+# Counterfactual Data Input
+```{r}
+# we need the renaming function for cleaning
+melor_2015 <- read.csv(here("data", "clustered_M15_CF_data2.csv"))
+```
+
+
+# Counterfactual predictions
+## Importing trained models
+
+```{r}
+
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
+
+base_models_list <- list()
+
+# base models file path
+base_file_path <- here("unadjusted SCM/new base models")
+base_wind_model <- readRDS(file.path(base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
+
+base_rain_model <- readRDS(here("unadjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
+
+
+base_class_full_model <- readRDS(file.path(base_file_path, 
+                                     "damage_fit_class_full.rds"))
+base_reg_model <- readRDS(file.path(base_file_path, 
+                                     "base_reg_model.rds"))
+
+base_models_list <- list("base_wind_model" = base_wind_model,
+                         "base_rain_model" = base_rain_model,
+                         "base_class_full_model" = base_class_full_model, 
+                         "base_reg_model" = base_reg_model)
+
+```
+
+```{r}
+
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
+
+# empty list
+trunc_models_list <- list()
+
+trunc_file_path <- here("unadjusted SCM/new trunc models")
+
+trunc_wind_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+trunc_rain_model <- readRDS(here("unadjusted SCM/new trunc models", 
+                                "dec_trunc_rain_model_tuned.rds"))
+
+trunc_reg_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_damage_fit_reg.rds"))
+
+trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                          "trunc_rain_model" = trunc_rain_model,
+                          "trunc_reg_model" = trunc_reg_model)
+```
+
+
+```{r}
+names(trunc_models_list)
+```
+
+```{r}
+names(base_models_list)
+```
+
+
+```{r}
+# setting threshold for classification step
+threshold = 0.30
+
+source(here("R", "unadj_hurdle_function.R"))
+unadj_counterfactual_hurdle_preds  <- unadj_hurdle_function(df = melor_2015,
+                                               scm_models_base = base_models_list,
+                                               scm_models_high = trunc_models_list,
+                                               threshold = threshold # threshold in train/test models is 0.35
+                                               )
+```
+
+
+
+```{r}
+# append the results to the counterfactual dataset
+melor_2015  <- melor_2015 %>%
+    mutate(damage_preds = unadj_counterfactual_hurdle_preds)
+```
+
+# Counteractual results
+```{r}
+# convert the Cluster column to factor
+melor_2015$Cluster <- as.factor(melor_2015$Cluster)
+
+# extract cluster_levels
+cluster_levels <- levels(melor_2015$Cluster)
+
+# Source function: counterfactual_results 
+source(here("R", "counterfactual_results.R"))
+
+
+cf_results <- counterfactual_results(cf_data = melor_2015, 
+                                     cluster_levels = cluster_levels) 
+
+```
+
+
+```{r}
+# Check the list to confirm plots are stored
+print(cf_results$plots)
+```
+
+```{r}
+print(cf_results$median)
+```
+
+# OLD CODE
+```{r, echo=FALSE, eval=FALSE}
+# plots_list  <- list()
+# means_list  <- list()
+# median_list  <- list()
+# 
+# for (i in seq_along(cleaned_list)) {
+#   # Get the current entry
+#   current_entry <- cleaned_list[[i]]
+# 
+#   # Convert the nested list entry to a data frame format
+#   plot_data <- bind_rows(lapply(names(current_entry), function(region) {
+#     data.frame(Mun_Code = unlist(current_entry[[region]]), island_regions = region, stringsAsFactors = FALSE)
+#   }))
+# 
+#   # Merge with original data to get predicted damage
+#   merged_data <- melor_2015 %>%
+#     inner_join(plot_data, by = "Mun_Code")
+# 
+#   # Create boxplot
+#   p <- ggplot(merged_data, aes(x = island_groups, y = damage_preds, fill = island_groups)) +
+#     geom_boxplot() +
+#     labs(title = paste("Predicted Damage Distribution - List Entry", i),
+#          x = "Island Region",
+#          y = "Predicted Damage") +
+#     theme_minimal()
+# 
+#  # Save the plot in the list
+#   plots_list[[i]] <- p
+# 
+#   # Calculate the mean of damage_preds for each island_groups
+#   mean_values <- merged_data %>%
+#     group_by(island_groups) %>%
+#     summarise(mean_damage = mean(damage_preds, na.rm = TRUE))
+# 
+#   # Save the means in the list
+#   means_list[[i]] <- mean_values
+# 
+#  # Calculate median of the damage_preds for each island groups
+#   median_values  <- merged_data %>%
+#     group_by(island_groups) %>%
+#     summarise(median_damage = median(damage_preds, na.rm = TRUE))
+# 
+#   # save the medians in the list
+#    median_list[[i]]  <- median_values
+# 
+# }
+# 
+# # Check the list to confirm plots are stored
+#print(plots_list)
+#print(median_list)
+```
+
