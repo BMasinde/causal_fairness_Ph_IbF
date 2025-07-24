@@ -1,7 +1,9 @@
 ---
 title: "Adjusted SCM base regression training"
-output: html_notebook
-author: Brian K. Masinde
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ```{r} 
