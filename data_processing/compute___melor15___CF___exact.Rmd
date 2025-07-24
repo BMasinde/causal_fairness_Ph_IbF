@@ -1,0 +1,41 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+---
+title: "Melor 2015 Counterfactual Data Generation"
+output: html_notebook
+author: Brian K. Masinde
+---
+
+```{r}
+# clean workspace and import libraries
+rm(list = ls())
+library(here)
+```
+
+```{r}
+# we need the renaming function for cleaning
+source(here("R", "col_rename.R"))
+
+base_data_regions <- read.csv(here("data", "base_data_regions.csv"))
+
+base_data_regions <- col_rename(base_data_regions)
+```
+
+```{r}
+# importing function for counterfactual data gen
+source(here("R", "counterfactual_gen.R"))
+
+melor_2015  <- counterfactual_gen(df = base_data_regions,
+                                  tc = "melor2015",
+                                  storm_surge = 0,
+                                  landslide =0)
+
+head(melor_2015)
+```
+
+```{r}
+write.csv(melor_2015, here("data", "melor15_CF_data.csv"))
+```
