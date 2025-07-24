@@ -13,8 +13,8 @@
 unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshold) {
   
   base_col_models_list <- list(
-    wind_max = scm_models_base[["base_wind_model"]]
-    #rain_total = scm_models_base[["base_rain_model"]]
+    wind_max = scm_models_base[["base_wind_model"]],
+    rain_total = scm_models_base[["base_rain_model"]]
   )
   
   ## common predictions btw class & base regression
@@ -35,7 +35,7 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total"]]
+    df1[[new_col_name]] <- df1[[col]] * df1[["rain_total_pred"]]
   }
   
   
@@ -66,8 +66,8 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   ## wind and rainfall predictions are based on high impact data (damage >= 10)
   
   trunc_col_models_list <- list(
-    wind_max = scm_models_high[["trunc_wind_model"]]
-    #rain_total = scm_models_high[["trunc_rain_model"]]
+    wind_max = scm_models_high[["trunc_wind_model"]],
+    rain_total = scm_models_high[["trunc_rain_model"]]
   )
   # add the predictions of wind and rainfall to the dataframe df
   df2 <- df %>%
@@ -83,7 +83,7 @@ unadj_hurdle_function <- function(df, scm_models_base, scm_models_high, threshol
   # Multiply rain fractions by rain_total_pred
   for (col in rain_fractions) {
     new_col_name <- paste0("rain_", col)
-    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total"]]
+    df2[[new_col_name]] <- df2[[col]] * df2[["rain_total_pred"]]
   }
   
   high_pred <- predict(scm_models_high$trunc_reg_model, df2)

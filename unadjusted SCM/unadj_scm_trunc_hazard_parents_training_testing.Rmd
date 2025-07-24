@@ -6,7 +6,7 @@ output:
   html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
 # Environment: Clear workingspace
 rm(list = ls())
 
@@ -102,5 +102,80 @@ saveRDS(trunc_wind_model_tuned,
 ```
 
 
+# Rain model Training and Testing
+# Rain Model Training & Testing
+```{r, echo=FALSE, eval=TRUE}
+trunc_rain_model <- rpart(rain_total ~ track_min_dist,
+                     data = trunc_train,
+                      method = "anova")
+```
+
+```{r}
+rpart.plot(trunc_rain_model)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+rain_pred <- predict(trunc_rain_model, trunc_test)
+
+rmse_rain_pred <- rmse(actual = trunc_test$rain_total,
+                           predicted = rain_pred)
+
+cat("rmse of decision tree of rain model", rmse_rain_pred, sep = " ")
 
 
+```
+
+```{r}
+full_path <- here("unadjusted SCM/new trunc models")
+saveRDS(trunc_rain_model,
+        file = file.path(full_path, paste0("dec_trunc_rain_model_tuned", ".rds")))
+```
+
+
+
+### Optimizing For Best parameters
+THIS DID NOT WORK OUT WELL!
+```{r, echo=FALSE, eval=FALSE}
+# set.seed(123)
+# # Define training control
+# control <- trainControl(method = "cv", number = 5)
+# 
+# # Set tuning grid
+# grid <- expand.grid(
+#  cp = seq(0.001, 0.7, by = 0.005)  # try several cp values
+# )
+# 
+# 
+# 
+# # Train model
+# trunc_rain_model_tuned <- train(
+#   rain_total ~ track_min_dist, data = trunc_train,
+#   method = "rpart",
+#   trControl = control,
+#   tuneGrid = grid
+# )
+# 
+# print(trunc_rain_model_tuned)
+# plot(trunc_rain_model_tuned)
+```
+
+```{r}
+ #rpart.plot(trunc_rain_model_tuned$finalModel)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# rain_pred_tuned <- predict(trunc_rain_model_tuned, trunc_test)
+# 
+# rmse_rain_pred_tuned <- rmse(actual = trunc_test$rain_total, 
+#                            predicted = rain_pred_tuned)
+# 
+# cat("rmse of tuned decision tree of rain model", rmse_rain_pred_tuned, sep = " ")
+```
+
+
+# Saving Tuned Rain_Total Decision Tree Model
+```{r, echo=FALSE, eval=FALSE}
+# full_path <- here("adjusted SCM/new base models")
+# saveRDS(dec_base_rain_model_tuned, 
+#         file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
+```

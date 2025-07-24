@@ -38,15 +38,21 @@ nrow(df_trunc_train2)
 
 ```{r}
 # Importing trained model
-trunc_wind_model <- readRDS(here("unadjusted SCM/new trunc models", 
+wind_trunc_model <- readRDS(here("unadjusted SCM/new trunc models", 
                                 "trunc_wind_model_tuned.rds"))
+
+rain_trunc_model <- readRDS(here("unadjusted SCM/new trunc models", 
+                                "dec_trunc_rain_model_tuned.rds"))
 ```
 
 ```{r}
 # Apply predictions efficiently
 # Predict using model "base_wind_model"
 # To get variable: wind_max_pred
-df_trunc_train2[["wind_max_pred"]] <- predict(trunc_wind_model, newdata = df_trunc_train2)
+df_trunc_train2[["wind_max_pred"]] <- predict(wind_trunc_model, newdata = df_trunc_train2)
+
+# To get variable: rain_total_pred
+df_trunc_train2[["rain_total_pred"]] <- predict(rain_trunc_model, newdata = df_trunc_train2)
 
 
 # Define wind and rain interaction variables
@@ -63,7 +69,7 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total_pred
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["rain_total"]]
+  df_trunc_train2 [[new_col_name]] <- df_trunc_train2 [[col]] * df_trunc_train2 [["rain_total_pred"]]
 }
 ```
 
@@ -105,7 +111,7 @@ trunc_xgb_reg_model <- train(
   damage_perc ~ 
     track_min_dist +
     wind_max_pred +
-    rain_total +
+    rain_total_pred +
     roof_strong_wall_strong +
     roof_strong_wall_light +
     roof_strong_wall_salv +
@@ -169,7 +175,7 @@ for (param in names(best_params)) {
 # ---------- train using best parameters
 trunc_damage_fit_reg <- train(damage_perc ~  track_min_dist +
                               wind_max_pred +
-                              rain_total +
+                              rain_total_pred +
                               roof_strong_wall_strong +
                               roof_strong_wall_light +
                               roof_strong_wall_salv +

@@ -1,10 +1,12 @@
 ---
 title: "Training Classification Model (Unadjusted SCM)"
-output: html_notebook
-author: Brian K. Masinde
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
 # Environment: Cleaning environment
 rm(list = ls())
 
@@ -20,6 +22,7 @@ library(Matrix)
 library(purrr) # useful for code optimization
 library(themis)
 library(doMC)
+library(here)
 ```
 
 
@@ -47,6 +50,13 @@ base_wind_model <- readRDS(here("unadjusted SCM/new base models",
                                 "dec_base_wind_model_tuned.rds"))
 ```
 
+```{r}
+# Training structural equation for wind speed
+# wind_speed = f(track_min_dist, eps)
+
+base_rain_model <- readRDS(here("unadjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
+```
 
 
 ```{r}
@@ -62,6 +72,9 @@ rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_
 df_base_train2[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
 
 
+# Predict using model "base_rain_model"
+# To get variable: wind_max_pred
+df_base_train2[["rain_total_pred"]] <- predict(base_rain_model, newdata = df_base_train2)
 
 
 # Multiply wind fractions by wind_max_pred
@@ -75,7 +88,7 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total_pred
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["rain_total"]]
+  df_base_train2[[new_col_name]] <- df_base_train2[[col]] * df_base_train2[["rain_total_pred"]]
 }
 ```
 
@@ -133,7 +146,7 @@ system.time({
     xgb_model <- train(
       damage_binary_2 ~ track_min_dist +
         wind_max_pred +
-        rain_total +
+        rain_total_pred +
         roof_strong_wall_strong +
         roof_strong_wall_light +
         roof_strong_wall_salv +
@@ -183,7 +196,7 @@ best_params_model <- xgb_model$bestTune
 damage_fit_class_full <- train(
           damage_binary_2 ~  track_min_dist +
             wind_max_pred +
-            rain_total +
+            rain_total_pred +
             roof_strong_wall_strong +
             roof_strong_wall_light +
             roof_strong_wall_salv +

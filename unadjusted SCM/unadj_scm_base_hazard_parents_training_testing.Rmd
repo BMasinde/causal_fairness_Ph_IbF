@@ -1,10 +1,12 @@
 ---
 title: "Training Parent Nodes"
-output: html_notebook
-author: Brian K. Masinde
+author: "Brian K. Masinde"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
 # Working Environment: Clear working environment
 rm(list = ls())
 
@@ -110,4 +112,61 @@ We output the caret tuned decision tree model
 full_path <- here("unadjusted SCM/new base models")
 saveRDS(dec_base_wind_model_tuned, 
         file = file.path(full_path, paste0("dec_base_wind_model_tuned", ".rds")))
+```
+
+
+# Rain model Training and Testing
+```{r}
+base_rain_model <- rpart(rain_total ~ track_min_dist,
+                      data = df_base_train2,
+                      method = "anova")
+```
+
+```{r}
+rpart.plot(base_rain_model)
+```
+
+
+## Optimizing For Best parameters
+```{r}
+set.seed(123)
+# Define training control
+control <- trainControl(method = "cv", number = 5)
+
+# Set tuning grid
+grid <- expand.grid(
+  cp = seq(0.001, 0.07, by = 0.005)  # try several cp values
+)
+
+# Train model
+dec_base_rain_model_tuned <- train(
+  rain_total ~ track_min_dist, data = df_base_train2,
+  method = "rpart",
+  trControl = control,
+  tuneGrid = grid
+)
+
+print(dec_base_rain_model_tuned)
+plot(dec_base_rain_model_tuned)
+```
+```{r}
+rpart.plot(dec_base_rain_model_tuned$finalModel)
+```
+
+
+```{r}
+dec_rain_pred_tuned <- predict(dec_base_rain_model_tuned, base_test)
+
+rmse_dec_rain_pred_tuned <- rmse(actual = df_base_train2$rain_total, 
+                           predicted = dec_rain_pred_tuned)
+
+cat("rmse of tuned decision tree of rain model", rmse_dec_rain_pred_tuned, sep = " ")
+```
+
+
+# Saving Tuned Rain_Total Decision Tree Model
+```{r}
+full_path <- here("unadjusted SCM/new base models")
+saveRDS(dec_base_rain_model_tuned, 
+        file = file.path(full_path, paste0("dec_base_rain_model_tuned", ".rds")))
 ```

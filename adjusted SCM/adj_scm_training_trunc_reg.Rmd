@@ -39,6 +39,9 @@ nrow(df_trunc_train2)
 # wind_max prediction using decision trees
 
 trunc_wind_model <- readRDS(here("adjusted SCM/new trunc models", "trunc_wind_model_tuned.rds"))
+
+
+trunc_rain_model <- readRDS(here("adjusted SCM/new trunc models", "trunc_rain_model_tuned.rds"))
 ```
 
 
@@ -50,6 +53,9 @@ trunc_wind_model <- readRDS(here("adjusted SCM/new trunc models", "trunc_wind_mo
 #   To get variable: wind_max_pred
 
 df_trunc_train2[["wind_max_pred"]] <- predict(trunc_wind_model, newdata = df_trunc_train2)
+
+# To get variable: rain_total_pred
+df_trunc_train2[["rain_total_pred"]] <- predict(trunc_rain_model, newdata = df_trunc_train2)
 
 
 # # Define wind and rain interaction variables
@@ -110,7 +116,7 @@ system.time({
 trunc_xgb_reg_model <- train(
   damage_perc ~ track_min_dist + 
     wind_max_pred +
-    rain_total +
+    rain_total_pred +
     roof_strong_wall_strong +
     roof_strong_wall_light +
     roof_strong_wall_salv +

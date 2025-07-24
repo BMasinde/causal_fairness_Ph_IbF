@@ -49,6 +49,9 @@ cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
 
 base_wind_model <- readRDS(here("unadjusted SCM/new base models", 
                                 "dec_base_wind_model_tuned.rds"))
+
+base_rain_model <- readRDS(here("unadjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
 ```
 
 
@@ -56,6 +59,11 @@ base_wind_model <- readRDS(here("unadjusted SCM/new base models",
 # Predict using model "base_wind_model"
 # To get variable: wind_max_pred
 df_base_train2[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
+
+
+# Predict using model "base_wind_model"
+# To get variable: wind_max_pred
+df_base_train2[["rain_total_pred"]] <- predict(base_rain_model, newdata = df_base_train2)
 ```
 
 
@@ -76,7 +84,7 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total_pred
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["rain_total"]]
+  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["rain_total_pred"]]
 }
 ```
 
@@ -117,7 +125,7 @@ system.time({
 base_xgb_reg_model <- train(
   damage_perc ~ track_min_dist + # Confounder adjustment
     wind_max_pred +
-    rain_total +
+    rain_total_pred +
     roof_strong_wall_strong +
     roof_strong_wall_light +
     roof_strong_wall_salv +
@@ -180,7 +188,7 @@ for (param in names(best_params)) {
 # ---------- train using best parameters
 damage_fit_reg_min <- train(damage_perc ~ track_min_dist +
                               wind_max_pred +
-                              rain_total +
+                              rain_total_pred +
                               roof_strong_wall_strong +
                               roof_strong_wall_light +
                               roof_strong_wall_salv +
