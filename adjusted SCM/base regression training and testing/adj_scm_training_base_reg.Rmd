@@ -43,6 +43,9 @@ cat("number of rows in combined train data:", nrow(df_base_train2), sep = " ")
 ```{r}
 base_wind_model <- readRDS(here("adjusted SCM/new base models", 
                                 "dec_base_wind_model_tuned.rds"))
+
+base_rain_model <- readRDS(here("adjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
 ```
 
 
@@ -57,6 +60,8 @@ rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_
 
 df_base_train2[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
 
+df_base_train2[["rain_total_pred"]] <- predict(base_rain_model, newdata = df_base_train2)
+
 # Compute wind interaction terms dynamically
 
 for (col in wind_fractions) {
@@ -68,7 +73,7 @@ for (col in wind_fractions) {
 # Multiply rain fractions by rain_total
 for (col in rain_fractions) {
   new_col_name <- paste0("rain_", col)
-  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["rain_total"]]
+  df_base_train2 [[new_col_name]] <- df_base_train2 [[col]] * df_base_train2 [["rain_total_pred"]]
 }
 ```
 
@@ -112,7 +117,7 @@ system.time({
 base_xgb_reg_model <- train(
   damage_perc ~  track_min_dist +
     wind_max_pred + # This was missing in the Dataiku workflow
-    rain_total +
+    rain_total_pred +
     roof_strong_wall_strong +
     roof_strong_wall_light +
     roof_strong_wall_salv +
@@ -148,7 +153,7 @@ print(base_xgb_reg_model$bestTune)
 best_params <- base_xgb_reg_model$bestTune
 damage_fit_reg_min <- train(damage_perc ~ track_min_dist +
                               wind_max_pred +
-                              rain_total +
+                              rain_total_pred +
                               roof_strong_wall_strong +
                               roof_strong_wall_light +
                               roof_strong_wall_salv +
