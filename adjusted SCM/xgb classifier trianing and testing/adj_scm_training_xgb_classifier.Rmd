@@ -6,7 +6,7 @@ output:
   html_notebook: default
 ---
 
-```{r}
+```{r, message=FALSE}
 # clear working environment
 rm(list = ls())
 
