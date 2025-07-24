@@ -74,7 +74,7 @@ rain_fractions <- c("blue_ls_frac", "yellow_ls_frac", "orange_ls_frac", "red_ls_
 # To get variable: wind_max_pred
 
 df_base_train2[["wind_max_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
-df_base_train2[["rain_total_pred"]] <- predict(base_wind_model, newdata = df_base_train2)
+df_base_train2[["rain_total_pred"]] <- predict(base_rain_model, newdata = df_base_train2)
 
 # Multiply wind fractions by wind_max_pred
 for (col in wind_fractions) {
