@@ -1,0 +1,146 @@
+---
+title: "Counterfactuals: Fixed storm surge, landslide and building typologies"
+output: html_notebook
+---
+
+```{r, message=FALSE}
+# clear the working space
+rm(list = ls())
+
+library(here)
+library(stats) # need this to calculate Mahalanobis Distance
+library(parallel) # parallelize
+library(dplyr)
+library(FNN)
+library(cluster)
+library(ggplot2)
+library(rpart)
+library(caret)
+```
+
+
+# Counterfactual Data Input
+```{r}
+# Loading the counterfactuals 
+low_melor_2015 <- read.csv(here("data", "low_melor15_CF_data.csv"))
+
+high_melor_2015 <- read.csv(here("data", "high_melor15_CF_data.csv"))
+```
+
+# Importing trained models
+```{r}
+
+# Import trained BASE models
+#   From folder: adjusted SCM/new base models
+
+base_models_list <- list()
+
+# base models file path
+base_file_path <- here("unadjusted SCM/new base models")
+base_wind_model <- readRDS(file.path(base_file_path, 
+                                     "dec_base_wind_model_tuned.rds"))
+
+base_rain_model <- readRDS(here("unadjusted SCM/new base models", 
+                                "dec_base_rain_model_tuned.rds"))
+
+
+base_class_full_model <- readRDS(file.path(base_file_path, 
+                                     "damage_fit_class_full.rds"))
+base_reg_model <- readRDS(file.path(base_file_path, 
+                                     "base_reg_model.rds"))
+
+base_models_list <- list("base_wind_model" = base_wind_model,
+                         "base_rain_model" = base_rain_model,
+                         "base_class_full_model" = base_class_full_model, 
+                         "base_reg_model" = base_reg_model)
+
+```
+
+```{r}
+
+# Import trained Truncated models
+#   From folder: adjusted SCM/new trunc models
+
+# empty list
+trunc_models_list <- list()
+
+trunc_file_path <- here("unadjusted SCM/new trunc models")
+
+trunc_wind_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_wind_model_tuned.rds"))
+trunc_rain_model <- readRDS(here("unadjusted SCM/new trunc models", 
+                                "dec_trunc_rain_model_tuned.rds"))
+
+trunc_reg_model <- readRDS(file.path(trunc_file_path,
+                                      "trunc_damage_fit_reg.rds"))
+
+trunc_models_list <- list("trunc_wind_model" = trunc_wind_model,
+                          "trunc_rain_model" = trunc_rain_model,
+                          "trunc_reg_model" = trunc_reg_model)
+```
+
+
+# Counterfactual predictions
+```{r}
+# setting threshold for classification step
+threshold = 0.30
+
+source(here("R", "unadj_hurdle_function.R"))
+low_unadj_counterfactual_hurdle_preds  <- unadj_hurdle_function(df = low_melor_2015,
+                                               scm_models_base = base_models_list,
+                                               scm_models_high = trunc_models_list,
+                                               threshold = threshold # threshold in train/test models is 0.35
+                                               )
+
+high_unadj_counterfactual_hurdle_preds  <- unadj_hurdle_function(df = high_melor_2015,
+                                               scm_models_base = base_models_list,
+                                               scm_models_high = trunc_models_list,
+                                               threshold = threshold # threshold in train/test models is 0.35
+                                               )
+
+
+```
+
+
+# Low vulnerability
+```{r}
+# append the results to the counterfactual dataset
+low_melor_2015  <- low_melor_2015 %>%
+    mutate(damage_preds = low_unadj_counterfactual_hurdle_preds)
+```
+
+
+```{r}
+# Get the first row for each level of C
+low_first_rows <- low_melor_2015 %>%
+  group_by(island_groups) %>%
+  slice(1) %>%
+  ungroup()
+
+# Print the values from column B labeled with the level from C
+for (i in 1:nrow(low_first_rows)) {
+  cat(paste(low_first_rows$island_groups[i], ":", low_first_rows$damage_preds[i], "\n"))
+}
+```
+
+# High vulnerability
+```{r}
+# append the results to the counterfactual dataset
+high_melor_2015  <- high_melor_2015 %>%
+    mutate(damage_preds =high_unadj_counterfactual_hurdle_preds)
+```
+
+
+
+```{r}
+# Get the first row for each level of C
+high_first_rows <- high_melor_2015 %>%
+  group_by(island_groups) %>%
+  slice(1) %>%
+  ungroup()
+
+# Print the values from column B labeled with the level from C
+for (i in 1:nrow(high_first_rows)) {
+  cat(paste(high_first_rows$island_groups[i], ":", high_first_rows$damage_preds[i], "\n"))
+}
+```
