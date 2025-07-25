@@ -1,0 +1,91 @@
+---
+title: 'Counterfactuals: Fixed storm surge, landslide and building typologies'
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r, message=FALSE}
+# clear the working space
+rm(list = ls())
+
+library(here)
+library(stats) # need this to calculate Mahalanobis Distance
+library(parallel) # parallelize
+library(dplyr)
+library(FNN)
+library(cluster)
+library(ggplot2)
+library(rpart)
+library(caret)
+```
+
+
+# Counterfactual Data Input
+```{r}
+# Loading the counterfactuals 
+low_melor_2015 <- read.csv(here("data", "low_melor15_CF_data.csv"))
+
+high_melor_2015 <- read.csv(here("data", "high_melor15_CF_data.csv"))
+```
+
+
+# Import trained models
+```{r}
+# Read the .rds models
+base_reg <- readRDS(here("associational XGBOOST", "damage_fit_reg_base.rds"))
+trunc_reg <- readRDS(here("associational XGBOOST", "trunc_damage_fit_reg.rds"))
+clas_model  <- readRDS(here("associational XGBOOST", "ass_XGBOOST_class.rds"))
+```
+
+## Counterfactual predictions
+```{r}
+source(here("R", "ass_hurdle_function.R"))
+
+# setting threshold for classification step
+threshold = 0.30
+
+low_preds <- ass_hurdle_function(df = low_melor_2015, ass_clas_model = clas_model,
+  ass_base_model = base_reg, ass_trunc_model = trunc_reg ,threshold = threshold)
+
+high_preds <- ass_hurdle_function(df = high_melor_2015, ass_clas_model = clas_model,
+  ass_base_model = base_reg, ass_trunc_model = trunc_reg ,threshold = threshold)
+```
+
+```{r}
+# append the results to the counterfactual dataset
+low_melor_2015  <- low_melor_2015 %>%
+    mutate(damage_preds = low_preds)
+
+high_melor_2015 <- high_melor_2015 %>%
+    mutate(damage_preds = high_preds)
+```
+
+
+# Low vulnerability
+```{r}
+# Get the first row for each level of C
+low_first_rows <- low_melor_2015 %>%
+  group_by(island_groups) %>%
+  slice(1) %>%
+  ungroup()
+
+# Print the values from column B labeled with the level from C
+for (i in 1:nrow(low_first_rows)) {
+  cat(paste(low_first_rows$island_groups[i], ":", low_first_rows$damage_preds[i], "\n"))
+}
+```
+
+# High vulnerability
+```{r}
+# Get the first row for each level of C
+high_first_rows <- high_melor_2015 %>%
+  group_by(island_groups) %>%
+  slice(1) %>%
+  ungroup()
+
+# Print the values from column B labeled with the level from C
+for (i in 1:nrow(high_first_rows)) {
+  cat(paste(high_first_rows$island_groups[i], ":", high_first_rows$damage_preds[i], "\n"))
+}
+```
