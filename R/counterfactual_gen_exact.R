@@ -5,10 +5,10 @@
 #' counterfactual dataframe to be used by the hurdle function
 #' @param df counterfactual_test_data
 #' @param tc tropical cyclone name
-#' @param matches municipality matches NOT NEEDED
+#' @param building_vals a vector of 7 values
 #' @return counterfactual_data_list return
 
-counterfactual_gen  <- function(df, tc, storm_surge, landslide,){
+counterfactual_gen  <- function(df, tc, storm_surge, landslide, building_vals){
   
   # get unique municipality codes
   mun_code  <- unique(df$Mun_Code)
@@ -34,7 +34,16 @@ counterfactual_gen  <- function(df, tc, storm_surge, landslide,){
            blue_ls_frac = landslide,
            yellow_ls_frac = landslide,
            orange_ls_frac= landslide,
-           red_ls_frac = landslide
+           red_ls_frac = landslide,
+           roof_strong_wall_strong = building_vals[1],
+           roof_strong_wall_light  = building_vals[2],
+           roof_strong_wall_salv  = building_vals[3],
+           roof_light_wall_strong  = building_vals[4], 
+           roof_light_wall_light  = building_vals[5],
+           roof_light_wall_salv  = building_vals[6],
+           roof_salv_wall_strong  = building_vals[7],
+           roof_salv_wall_light = building_vals[8],
+           roof_salv_wall_salv  = building_vals[9]
     ) %>%
     select(-typhoon)
   
@@ -73,7 +82,16 @@ counterfactual_gen  <- function(df, tc, storm_surge, landslide,){
              blue_ls_frac = landslide,
              yellow_ls_frac = landslide,
              orange_ls_frac= landslide,
-             red_ls_frac = landslide
+             red_ls_frac = landslide,
+             roof_strong_wall_strong = building_vals[1],
+             roof_strong_wall_light  = building_vals[2],
+             roof_strong_wall_salv  = building_vals[3],
+             roof_light_wall_strong  = building_vals[4], 
+             roof_light_wall_light  = building_vals[5],
+             roof_light_wall_salv  = building_vals[6],
+             roof_salv_wall_strong  = building_vals[7],
+             roof_salv_wall_light = building_vals[8],
+             roof_salv_wall_salv  = building_vals[9]
       ) %>%
       select(-typhoon)
     # debugging

@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
 ---
@@ -9,7 +11,7 @@ output: html_notebook
 author: Brian K. Masinde
 ---
 
-```{r}
+```{r, message=FALSE}
 # clean workspace and import libraries
 rm(list = ls())
 library(here)
@@ -26,16 +28,37 @@ base_data_regions <- col_rename(base_data_regions)
 
 ```{r}
 # importing function for counterfactual data gen
-source(here("R", "counterfactual_gen.R"))
+source(here("R", "counterfactual_gen_exact.R"))
 
-melor_2015  <- counterfactual_gen(df = base_data_regions,
+low_vul_building_vals <- c(80, 2,2,2,2,2,2,2, 10)
+
+low_melor_2015  <- counterfactual_gen(df = base_data_regions,
                                   tc = "melor2015",
-                                  storm_surge = 0,
-                                  landslide =0)
+                                  storm_surge = 0.1,
+                                  landslide =0.1,
+                                  building_vals = low_vul_building_vals
+                                  )
 
-head(melor_2015)
+head(low_melor_2015)
 ```
 
 ```{r}
-write.csv(melor_2015, here("data", "melor15_CF_data.csv"))
+high_vul_building_vals <- c(10, 2,2,2,2,2,2,2, 80)
+
+high_melor_2015  <- counterfactual_gen(df = base_data_regions,
+                                  tc = "melor2015",
+                                  storm_surge = 0.1,
+                                  landslide =0.1,
+                                  building_vals = high_vul_building_vals
+                                  )
+
+head(high_melor_2015)
 ```
+
+
+```{r}
+write.csv(low_melor_2015, here("data", "low_melor15_CF_data.csv"))
+
+write.csv(high_melor_2015, here("data", "high_melor15_CF_data.csv"))
+```
+
