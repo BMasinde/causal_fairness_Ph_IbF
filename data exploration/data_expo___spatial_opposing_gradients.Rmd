@@ -8,6 +8,7 @@ author: Brian K. Masinde
 library(here)
 library(dplyr)
 library(fmsb)
+library(corrplot)
 ```
 
 
@@ -116,7 +117,192 @@ legend("topright",
 dev.off()
 ```
 
-# Trends for hazard
+# Correlations
+```{r}
+df_buildings <- df %>%
+  rename(roof_strong_wall_strong = VUL_StrongRoof_StrongWall,
+      roof_strong_wall_light = VUL_StrongRoof_LightWall,
+      roof_strong_wall_salv = VUL_StrongRoof_SalvageWall,
+      roof_light_wall_strong = VUL_LightRoof_StrongWall,
+      roof_light_wall_light = VUL_LightRoof_LightWall,
+      roof_light_wall_salv = VUL_LightRoof_SalvageWall,
+      roof_salv_wall_strong = VUL_SalvagedRoof_StrongWall,
+      roof_salv_wall_light = VUL_SalvagedRoof_LightWall,
+      roof_salv_wall_salv = VUL_SalvagedRoof_SalvageWall) %>%
+  select(
+    roof_strong_wall_strong,
+    roof_strong_wall_light,
+    roof_strong_wall_salv,
+    roof_light_wall_strong,
+    roof_light_wall_light,
+    roof_light_wall_salv,
+    roof_salv_wall_strong,
+    roof_salv_wall_light,
+    roof_salv_wall_salv,
+    DAM_perc_dmg
+  )
+  
+  
+# Compute correlation matrix
+cor_matrix <- cor(df_buildings, use = "complete.obs")
 
 
+
+png(here("plots","corrplot_all_data_vul.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Set larger top margin: c(bottom, left, top, right)
+par(mar = c(1, 1, 5, 1))  # top = 5 leaves space for title
+
+# Make the corrplot
+corrplot(cor_matrix, method = "color", type = "upper",
+         col = colorRampPalette(c("red", "white", "blue"))(200),
+         tl.col = "black", tl.srt = 45
+         )
+
+title("Correlation: building typologies and damage percentage in the Philippines", line = 3, cex.main = 1)
+
+dev.off()
+```
+
+
+
+
+```{r}
+df_buildings_luzon <- df %>%
+  filter(island_groups == "Luzon") %>%
+  rename(roof_strong_wall_strong = VUL_StrongRoof_StrongWall,
+      roof_strong_wall_light = VUL_StrongRoof_LightWall,
+      roof_strong_wall_salv = VUL_StrongRoof_SalvageWall,
+      roof_light_wall_strong = VUL_LightRoof_StrongWall,
+      roof_light_wall_light = VUL_LightRoof_LightWall,
+      roof_light_wall_salv = VUL_LightRoof_SalvageWall,
+      roof_salv_wall_strong = VUL_SalvagedRoof_StrongWall,
+      roof_salv_wall_light = VUL_SalvagedRoof_LightWall,
+      roof_salv_wall_salv = VUL_SalvagedRoof_SalvageWall) %>%
+  select(
+    roof_strong_wall_strong,
+    roof_strong_wall_light,
+    roof_strong_wall_salv,
+    roof_light_wall_strong,
+    roof_light_wall_light,
+    roof_light_wall_salv,
+    roof_salv_wall_strong,
+    roof_salv_wall_light,
+    roof_salv_wall_salv,
+    DAM_perc_dmg
+  )
+  
+  
+# Compute correlation matrix
+cor_matrix_luzon <- cor(df_buildings_luzon , use = "complete.obs")
+
+png(here("plots","corrplot_luzon_vul.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Set larger top margin: c(bottom, left, top, right)
+par(mar = c(1, 1, 5, 1))  # top = 5 leaves space for title
+
+# Make the corrplot
+corrplot(cor_matrix_luzon, method = "color", type = "upper",
+         col = colorRampPalette(c("red", "white", "blue"))(200),
+         tl.col = "black", tl.srt = 45,
+         )
+
+title("Correlation: building typologies and damage percentage in Luzon", line = 3, cex.main = 1)
+dev.off()
+```
+
+```{r}
+df_buildings_visayas <- df %>%
+  filter(island_groups == "Visayas") %>%
+  rename(roof_strong_wall_strong = VUL_StrongRoof_StrongWall,
+      roof_strong_wall_light = VUL_StrongRoof_LightWall,
+      roof_strong_wall_salv = VUL_StrongRoof_SalvageWall,
+      roof_light_wall_strong = VUL_LightRoof_StrongWall,
+      roof_light_wall_light = VUL_LightRoof_LightWall,
+      roof_light_wall_salv = VUL_LightRoof_SalvageWall,
+      roof_salv_wall_strong = VUL_SalvagedRoof_StrongWall,
+      roof_salv_wall_light = VUL_SalvagedRoof_LightWall,
+      roof_salv_wall_salv = VUL_SalvagedRoof_SalvageWall) %>%
+  select(
+    roof_strong_wall_strong,
+    roof_strong_wall_light,
+    roof_strong_wall_salv,
+    roof_light_wall_strong,
+    roof_light_wall_light,
+    roof_light_wall_salv,
+    roof_salv_wall_strong,
+    roof_salv_wall_light,
+    roof_salv_wall_salv,
+    DAM_perc_dmg
+  )
+  
+  
+# Compute correlation matrix
+cor_matrix_visayas <- cor(df_buildings_visayas , use = "complete.obs")
+
+
+png(here("plots","corrplot_visayas_vul.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Set larger top margin: c(bottom, left, top, right)
+par(mar = c(1, 1, 5, 1))  # top = 5 leaves space for title
+
+#Make the corrplot
+corrplot(cor_matrix_visayas, method = "color", type = "upper",
+         col = colorRampPalette(c("red", "white", "blue"))(200),
+         tl.col = "black", tl.srt = 45)
+
+title("Correlation: building typologies and damage percentage in Visayas", line = 3, cex.main = 1)
+
+dev.off()
+
+# corrplot.mixed(cor_matrix_visayas,
+#                upper = "color",    # upper triangle: color
+#                lower = "number",   # lower triangle: correlation coefficients
+#                tl.col = "black",
+#                tl.srt = 45,
+#                number.cex = 0.7)   # adjust size of the numbers
+```
+
+
+```{r}
+df_buildings_mindanao <- df %>%
+  filter(island_groups == "Mindanao") %>%
+  rename(roof_strong_wall_strong = VUL_StrongRoof_StrongWall,
+      roof_strong_wall_light = VUL_StrongRoof_LightWall,
+      roof_strong_wall_salv = VUL_StrongRoof_SalvageWall,
+      roof_light_wall_strong = VUL_LightRoof_StrongWall,
+      roof_light_wall_light = VUL_LightRoof_LightWall,
+      roof_light_wall_salv = VUL_LightRoof_SalvageWall,
+      roof_salv_wall_strong = VUL_SalvagedRoof_StrongWall,
+      roof_salv_wall_light = VUL_SalvagedRoof_LightWall,
+      roof_salv_wall_salv = VUL_SalvagedRoof_SalvageWall) %>%
+  select(
+    roof_strong_wall_strong,
+    roof_strong_wall_light,
+    roof_strong_wall_salv,
+    roof_light_wall_strong,
+    roof_light_wall_light,
+    roof_light_wall_salv,
+    roof_salv_wall_strong,
+    roof_salv_wall_light,
+    roof_salv_wall_salv,
+    DAM_perc_dmg
+  )
+  
+  
+# Compute correlation matrix
+cor_matrix_mindanao <- cor(df_buildings_mindanao , use = "complete.obs")
+
+png(here("plots","corrplot_mindanao_vul.png"), width = 8, height = 8, units = "in", res = 300)
+
+# Set larger top margin: c(bottom, left, top, right)
+par(mar = c(1, 1, 5, 1))  # top = 5 leaves space for title
+# Make the corrplot
+corrplot(cor_matrix_mindanao, method = "color", type = "upper",
+         col = colorRampPalette(c("red", "white", "blue"))(200),
+         tl.col = "black", tl.srt = 45)
+
+title("Correlation: building typologies and damage percentage in Mindanao", line = 3, cex.main = 1 )
+dev.off()
+```
 
