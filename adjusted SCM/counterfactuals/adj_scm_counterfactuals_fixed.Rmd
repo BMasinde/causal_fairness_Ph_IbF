@@ -30,9 +30,9 @@ library(caret)
 # Counterfactual Data Input
 ```{r}
 # Loading the counterfactuals 
-low_melor_2015 <- read.csv(here("data", "low_melor15_CF_data.csv"))
+low_melor_2015 <- read.csv(here("data", "low_melor15_CF_data_2.csv"))
 
-high_melor_2015 <- read.csv(here("data", "high_melor15_CF_data.csv"))
+high_melor_2015 <- read.csv(here("data", "high_melor15_CF_data_2.csv"))
 ```
 
 
