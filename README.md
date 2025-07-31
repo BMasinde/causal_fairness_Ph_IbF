@@ -14,11 +14,11 @@ These are the results to Table 2 in the manuscript.
 
 Classification metrics for adjusted SCM:
 
-|- adjusted SCM/
+├── adjusted SCM/
 
-	|- xgb classifier and training/
+│	├── xgb classifier and training/
 
-		|- adj_scm_testing_xgb_classifier.pdf
+│	│	└── adj_scm_testing_xgb_classifier.pdf
 
 Classification metrics for unadjusted SCM:
 
