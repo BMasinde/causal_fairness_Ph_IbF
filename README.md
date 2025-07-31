@@ -24,7 +24,7 @@ Classification metrics for unadjusted SCM:
 
 ├──  unadjusted SCM/
 
-	|- unadj_scm_testing_xgb_classifier.pdf
+│	└── unadj_scm_testing_xgb_classifier.pdf
 
 Classification metrics for associational XGBoost:
 
@@ -57,6 +57,9 @@ Binned metrics for associtional XGBoost:
 ├── associtional XGBOOST/
 
 │	└── model___hurlde_testing.pdf
+
+
+### Counterfactuals
 
 
 ## References:
