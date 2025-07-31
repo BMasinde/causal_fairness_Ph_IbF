@@ -82,8 +82,28 @@ associtional XGBoost Table 5 results:
 │	└── ass___counterfactual_testing2.pdf
 
 
-Results for Table 6 to 9
+Results for Table 6 to 9 adjusted SCM:
 
+├── adjusted SCM/
+
+│	├── counterfactuals/
+
+│	│	└── adj_scm_counterfactuals_fixed.pdf # Table 6 results
+
+│	│	└── adj_scm_counterfactuals_fixed.Rmd # Table 8 results (Note this is the .Rmd file and not the pdf file)
+
+
+Results for Table 6 to 9 unadjusted SCM:
+├──  unadjusted SCM/
+
+│	└── unadj_scm_counterfactuals_fixed.Rmd # Table 8 & 9 results
+
+
+Results for Table 6 to 9 Associtional XGBoost:
+
+├──  associational XGBOOST/
+
+│	└── ass_counterfactuals_fixed.Rmd # Results for Table 9
 
 
 
