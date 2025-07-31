@@ -4,7 +4,7 @@
 ## Description:
 This project aims to use causal reasoning and models to identify potential biases while using machine learning to predict impact of tropical cyclones in the Philippines. The concerns for biases come from the spatial opposing gradients problem whereby the Northern region of the Philippines expereinces more tropical cyclones compared to the southern regions while southern regions exhibit more socio-economic vulnerability (Baldwin et al., 2023) and also increasing housing vulnerability because of building typologies used (Healey et al., 2022). 
 
-We implement three models, two causal models based on directed acyclic graphs (DAGs) and structural causal models (SCMs), and one traditonal associtional model based on XGBoost. One causal model is adjusted for the regional confounder that accounts for the spatial opposing gradients problem. The unadjusted SCM model is a causal surrogate of the associationall XGBoost model.
+We implement three models, two causal models based on directed acyclic graphs (DAGs) and structural causal models (SCMs), and one traditonal associational model based on XGBoost. One causal model is adjusted for the regional confounder that accounts for the spatial opposing gradients problem. The unadjusted SCM model is a causal surrogate of the associationall XGBoost model.
 
 
 ## Results
@@ -28,7 +28,7 @@ Classification metrics for unadjusted SCM:
 
 Classification metrics for associational XGBoost:
 
-├──  associtional XGBOOST/
+├──  associational XGBOOST/
 
 │	└── model___training_xgb_classifier.pdf
 
@@ -49,17 +49,41 @@ Binned metrics for unadjusted SCM:
 
 ├── unadjusted SCM/
 
-│	└── unadj_scm_hurlde_testing.pdf
+│	└── unadj_scm_hurdle_testing.pdf
 
 
-Binned metrics for associtional XGBoost:
+Binned metrics for associational XGBoost:
 
-├── associtional XGBOOST/
+├── associational XGBOOST/
 
-│	└── model___hurlde_testing.pdf
+│	└── model___hurdle_testing.pdf
 
 
 ### Counterfactuals
+Results to Table 5 counterfactuals based on clusters:
+
+adjusted SCM Table 5 results:
+├── adjusted SCM/
+
+│	├── counterfactuals/
+
+│	│	└── adj_scm_counterfactual2.pdf
+
+
+unadjusted SCM Table 5 results:
+├──  unadjusted SCM/
+
+│	└── unadj_scm_counterfactual_2.pdf
+
+
+associtional XGBoost Table 5 results:
+├──  associational XGBOOST/
+
+│	└── ass___counterfactual_testing2.pdf
+
+
+Results for Table 6 to 
+
 
 
 ## References:
