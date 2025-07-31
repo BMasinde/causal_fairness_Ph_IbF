@@ -22,15 +22,15 @@ Classification metrics for adjusted SCM:
 
 Classification metrics for unadjusted SCM:
 
-|- unadjusted SCM/
+├──  unadjusted SCM/
 
 	|- unadj_scm_testing_xgb_classifier.pdf
 
 Classification metrics for associational XGBoost:
 
-|- associtional XGBOOST/
+├──  associtional XGBOOST/
 
-	|- model___training_xgb_classifier.pdf
+│	└── model___training_xgb_classifier.pdf
 
 
 ### Hurdle Testing: Binned metrics
@@ -38,25 +38,25 @@ These are the resutls for Table 4 in the manuscript
 
 Binned metrics for adjusted SCM:
 
-|- adjusted SCM/
+├──  adjusted SCM/
 
-	|- hurdle testing/
+│	├──  hurdle testing/
 
-		|- adj_scm_hurdle_testing.pdf
+│	│	└── adj_scm_hurdle_testing.pdf
 
 
 Binned metrics for unadjusted SCM:
 
-|- unadjusted SCM/
+├── unadjusted SCM/
 
-	|- unadj_scm_hurlde_testing.pdf
+│	└── unadj_scm_hurlde_testing.pdf
 
 
 Binned metrics for associtional XGBoost:
 
-|- associtional XGBOOST/
+├── associtional XGBOOST/
 
-	|- model___hurlde_testing.pdf
+│	└── model___hurlde_testing.pdf
 
 
 ## References:
