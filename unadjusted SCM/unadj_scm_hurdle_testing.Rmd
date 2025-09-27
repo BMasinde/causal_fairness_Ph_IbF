@@ -185,3 +185,48 @@ mlflow_log_metric("w_avg", w_avg)
 mlflow_end_run()
 ```
 
+# Bias Checking
+Checking if the model under-predicts or over-predicts in different regions. Checked
+by plotting residuals of the predictions.
+
+
+```{r}
+residual_df <- df_test %>%
+  select(island_groups, damage_perc) %>%
+  mutate(pred_damage = preds) %>%
+  mutate(residuals = damage_perc - pred_damage)
+
+
+```
+
+```{r}
+# Residual boxplot per group ----
+p_unadj_scm <- ggplot(residual_df, aes(x = island_groups, y = residuals)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals by Group Unadjusted SCM",
+       y = "Residual (y_true - y_pred)",
+       x = "Island Groups")
+```
+
+```{r}
+# ---- 2. Average bias (bar plot) ----
+p_unadj_scm_avg <- residual_df %>%
+  group_by(island_groups) %>%
+  summarise(mean_residual = mean(residuals)) %>%
+  ggplot(aes(x = island_groups, y = mean_residual, fill = island_groups)) +
+  geom_col() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Average Residual by Group Unadjusted SCM",
+       y = "Mean Residual",
+       x = "Island Groups")
+```
+
+
+```{r}
+combined_plot <- grid.arrange(p_unadj_scm, p_unadj_scm_avg, ncol = 2)
+
+# Save as PNG at 300 dpi
+ggsave(here("plots", "plot_res_unadj_scm.png"), plot = combined_plot, width = 10, height = 6, dpi = 300)
+```
+
