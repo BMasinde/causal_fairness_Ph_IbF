@@ -40,6 +40,22 @@ In contrast, the **Associational XGBoost** represents a non-causal, predictive m
 | **Weighted Avg.** | **5.80** | **6.12** | **4.30** |
 | **Total Features**| **21** | **20** | **20** |
 
+
+### Median Counterfactual Results (Unfixed Secondary Hazards)
+
+Median counterfactual results with unfixed secondary hazards.  
+Clusters are based on building typology variables and derived using the K-Means algorithm with *k = 5*.  
+Used maximum wind speed, rainfall, and minimum observed distance of **Typhoon Melor (2015)**.
+
+| **Cluster** | **Adjusted SCM – Luzon** | **Adjusted SCM – Visayas** | **Adjusted SCM – Mindanao** | **Unadjusted SCM – Luzon** | **Unadjusted SCM – Visayas** | **Unadjusted SCM – Mindanao** | **Associational XGBoost – Luzon** | **Associational XGBoost – Visayas** | **Associational XGBoost – Mindanao** |
+|:-------------|:------------------------:|:---------------------------:|:----------------------------:|:---------------------------:|:-----------------------------:|:------------------------------:|:----------------------------------:|:-----------------------------------:|:------------------------------------:|
+| **Cluster 1** | 12.7 | 27.10 | 9.92 | 15.60 | 6.36 | 19.60 | 13.2 | 8.14 | 21.0 |
+| **Cluster 2** | 3.51 | 28.10 | 17.10 | 3.22 | 35.00 | 26.80 | 5.10 | 6.53 | 31.9 |
+| **Cluster 3** | 7.28 | 37.10 | 9.19 | 18.80 | 28.00 | 13.30 | 19.90 | 25.70 | 9.45 |
+| **Cluster 4** | 19.60 | 38.70 | 32.60 | 17.00 | 38.40 | 32.90 | 32.80 | 35.90 | 13.80 |
+| **Cluster 5** | 1.73 | 28.40 | 7.95 | 2.00 | 5.70 | 4.35 | 3.82 | 4.04 | 5.77 |
+
+
 Classification metrics for adjusted SCM:
 
 ├── adjusted SCM/
