@@ -22,6 +22,24 @@ Overall accuracy and metrics for the positive class (damage % > 10) in causal bi
 | **F1**        | 0.50 | 0.45 | 0.58 |
 
 
+
+### Comparison of Binned RMSE Metrics (Regression Step)
+
+Comparison of binned RMSE metrics on the test set across different modeling approaches.  
+The **Unadjusted SCM** refers to the Structural Causal Model (SCM) excluding regional influences, thereby requiring no confounder adjustment.  
+The **Adjusted SCM** incorporates regional confounding factors to estimate causal effects more accurately.  
+In contrast, the **Associational XGBoost** represents a non-causal, predictive model that does not account for confounding variables.
+
+| **Bin Interval** | **Adjusted SCM** | **Unadjusted SCM** | **Associational XGBoost** |
+|:------------------|:----------------:|:------------------:|:--------------------------:|
+| [0, 0.00009]      | 0.97  | 1.00  | 1.05  |
+| (0.00009, 1]      | 7.68  | 8.34  | 3.99  |
+| (1, 10]           | 13.03 | 13.92 | 10.69 |
+| (10, 50]          | 13.95 | 13.75 | 12.63 |
+| (50, 100]         | 41.92 | 46.31 | 23.08 |
+| **Weighted Avg.** | **5.80** | **6.12** | **4.30** |
+| **Total Features**| **21** | **20** | **20** |
+
 Classification metrics for adjusted SCM:
 
 ├── adjusted SCM/
