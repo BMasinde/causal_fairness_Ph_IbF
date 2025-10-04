@@ -56,7 +56,7 @@ Used maximum wind speed, rainfall, and minimum observed distance of **Typhoon Me
 | **Cluster 5** | 1.73 | 28.40 | 7.95 | 2.00 | 5.70 | 4.35 | 3.82 | 4.04 | 5.77 |
 
 ### Discussion (Is there a bias?)
-Adjsuting for the regional confounder shows that the models tend to over-estimate damage in Visayas region compared to the unadjusted causal model and the traditional XGBoost model. While this is indeed a bias, it begs the question whether this overestimation is unjustiifable. It turns out that the geography of the Visayas region being majorly coastal and more unsheltered from tropical storms increases the potential for damage.
+Adjsuting for the regional confounder shows that the models tend to over-estimate damage in Visayas region compared to the unadjusted causal model and the traditional XGBoost model. While this is indeed a bias, it begs the question whether this overestimation is unjustiifable. It turns out that the geography of the Visayas region being majorly coastal and more unsheltered from tropical storms increases the potential for damage. Under counterfactual conditions we do not know what the damage should be and therefore have to make a value judgements on which model to use. 
 
 
 ## References:
