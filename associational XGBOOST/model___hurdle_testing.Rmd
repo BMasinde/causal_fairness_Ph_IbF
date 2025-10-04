@@ -19,6 +19,7 @@ library(mlflow)
 library(reticulate)
 library(Metrics)
 library(here)
+library(gridExtra)
 ```
 
 # Inputs
@@ -121,7 +122,8 @@ p_ass <- ggplot(residual_df, aes(x = island_groups, y = residuals)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(title = "Residuals by Group: XGBoost",
        y = "Residual (y_true - y_pred)",
-       x = "Island Group")
+       x = "Island Group") +
+  scale_y_continuous(limits = c(-60, 80))
 
 p_ass
 ```
@@ -137,7 +139,8 @@ p_ass
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(title = "Average Residual by Group: XGBoost",
        y = "Mean Residual",
-       x = "Island Groups")
+       x = "Island Groups") +
+  scale_y_continuous(limits = c(-4, 2))
 
 p_ass_avg
 ```
