@@ -206,7 +206,11 @@ p_unadj_scm <- ggplot(residual_df, aes(x = island_groups, y = residuals)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(title = "Residuals by Group Unadjusted SCM",
        y = "Residual (y_true - y_pred)",
-       x = "Island Groups")
+       x = "Island Groups")+
+  scale_y_continuous(limits = c(-70, 80))
+
+p_unadj_scm
+
 ```
 
 ```{r}
@@ -219,7 +223,11 @@ p_unadj_scm_avg <- residual_df %>%
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(title = "Average Residual by Group Unadjusted SCM",
        y = "Mean Residual",
-       x = "Island Groups")
+       x = "Island Groups")+
+  scale_y_continuous(limits = c(-4, 2))+
+  scale_fill_discrete(name = "Island Groups")
+
+p_unadj_scm_avg
 ```
 
 

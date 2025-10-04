@@ -123,7 +123,8 @@ p_ass <- ggplot(residual_df, aes(x = island_groups, y = residuals)) +
   labs(title = "Residuals by Group: XGBoost",
        y = "Residual (y_true - y_pred)",
        x = "Island Group") +
-  scale_y_continuous(limits = c(-60, 80))
+  scale_y_continuous(limits = c(-70, 80))+
+  scale_fill_discrete(name = "Island Groups")
 
 p_ass
 ```
@@ -140,7 +141,8 @@ p_ass
   labs(title = "Average Residual by Group: XGBoost",
        y = "Mean Residual",
        x = "Island Groups") +
-  scale_y_continuous(limits = c(-4, 2))
+  scale_y_continuous(limits = c(-4, 2))+
+  scale_fill_discrete(name = "Island Groups")
 
 p_ass_avg
 ```
