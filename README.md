@@ -6,6 +6,8 @@ This project aims to use causal reasoning and models to identify potential biase
 
 We implement three models, two causal models based on directed acyclic graphs (DAGs) and structural causal models (SCMs), and one traditonal associational model based on XGBoost. One causal model is adjusted for the regional confounder that accounts for the spatial opposing gradients problem. The unadjusted SCM model is a causal surrogate of the associationall XGBoost model.
 
+![Logo](plots/tc_graph_f.png)
+
 
 ## Results
 
