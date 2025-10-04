@@ -48,7 +48,7 @@ In contrast, the **Associational XGBoost** represents a non-causal, predictive m
 ![Logo](plots/plot_res_ass.png)
 
 
-![Logo](plots/plot_res_unadj.png)
+![Logo](plots/plot_res_unadj_scm.png)
 
 ### Median Counterfactual Results (Unfixed Secondary Hazards)
 
