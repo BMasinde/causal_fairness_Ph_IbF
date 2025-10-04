@@ -9,10 +9,18 @@ We implement three models, two causal models based on directed acyclic graphs (D
 ![Logo](plots/tc_graph_f.png)
 
 
-## Results
+## Results 
+### Overall Accuracy and Metrics (Classification Step)
 
-### Classification (damage => 10 %)
-These are the results to Table 2 in the manuscript. 
+Overall accuracy and metrics for the positive class (damage % > 10) in causal binary classifier for the regionally adjusted model (Adjusted SCM), unadjusted model (Unadjusted SCM), and associational XGBoost.
+
+| **Metric** | **Adjusted SCM** | **Unadjusted SCM** | **Associational XGBoost** |
+|-------------|------------------|--------------------|----------------------------|
+| **Accuracy**  | 0.94 | 0.93 | 0.95 |
+| **Recall**    | 0.56 | 0.54 | 0.60 |
+| **Precision** | 0.44 | 0.39 | 0.56 |
+| **F1**        | 0.50 | 0.45 | 0.58 |
+
 
 Classification metrics for adjusted SCM:
 
