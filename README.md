@@ -40,6 +40,15 @@ In contrast, the **Associational XGBoost** represents a non-causal, predictive m
 | **Weighted Avg.** | **5.80** | **6.12** | **4.30** |
 | **Total Features**| **21** | **20** | **20** |
 
+#### Residual plots
+
+![Logo](plots/plot_res_ascm.png)
+
+
+![Logo](plots/plot_res_ass.png)
+
+
+![Logo](plots/plot_res_unadj.png)
 
 ### Median Counterfactual Results (Unfixed Secondary Hazards)
 
